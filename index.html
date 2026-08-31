@@ -5,31 +5,31 @@
 <title>Tesla Model Y — Social Listening Reporting</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  /* Fixed Škoda-style dark green / mint brand palette — declared on :root so
-     html/body (ancestors of .viz-root) can see it too, not just descendants. */
+  /* Warm cream / terracotta brand palette — deliberately not green, declared on
+     :root so html/body (ancestors of .viz-root) can see it too, not just descendants. */
   :root {
-    color-scheme: dark;
-    --surface-1:      #173029;
-    --surface-2:      #1d3a31;
-    --page-plane:     #0e211c;
-    --text-primary:   #eafbf1;
-    --text-secondary: #a7d6c1;
-    --text-muted:     #77a08e;
-    --gridline:       #2c4a40;
-    --baseline:       #3c5f52;
-    --border:         rgba(167,214,193,0.16);
-    --series-1:       #4fd39a;
-    --series-1-soft:  rgba(79,211,154,0.14);
-    --seq-100:        #a8ecc9;
-    --seq-700:        #1f6b4c;
-    --hover-wash:     rgba(79,211,154,0.10);
-    --neg:            #e2585a;
-    --neutral-fill:   #7c8f84;
-    --pos:            #4fd39a;
-    --accent-warm:    #e0a63e;
-    --on-accent:      #0e211c;
-    --shadow-sm:      0 1px 2px rgba(0,0,0,0.25);
-    --shadow-md:      0 8px 24px rgba(0,0,0,0.35);
+    color-scheme: light;
+    --surface-1:      #fff8ed;
+    --surface-2:      #f1dfc2;
+    --page-plane:     #faebd7;
+    --text-primary:   #2b211a;
+    --text-secondary: #5b4a3b;
+    --text-muted:     #8a7862;
+    --gridline:       #e8dcc6;
+    --baseline:       #afa089;
+    --border:         rgba(90,60,30,0.16);
+    --series-1:       #b5541f;
+    --series-1-soft:  rgba(181,84,31,0.14);
+    --seq-100:        #e9be93;
+    --seq-700:        #7a3410;
+    --hover-wash:     rgba(181,84,31,0.08);
+    --neg:            #b23a2e;
+    --neutral-fill:   #93816c;
+    --pos:            #235c79;
+    --accent-warm:    #a8781e;
+    --on-accent:      #fff6e9;
+    --shadow-sm:      0 1px 2px rgba(60,40,20,0.14);
+    --shadow-md:      0 8px 24px rgba(60,40,20,0.18);
   }
 
   * { box-sizing: border-box; }
@@ -134,7 +134,7 @@
     letter-spacing: -0.01em;
     padding: 0;
     cursor: pointer;
-    color-scheme: dark;
+    color-scheme: light;
   }
   .meta-range-inputs input[type="date"]:focus { outline: 1px solid var(--series-1); border-radius: 4px; }
   .meta-range-sep { color: var(--text-muted); font-size: 13px; }
@@ -739,7 +739,7 @@
   .matrix-table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
   .matrix-table th, .matrix-table td { padding: 7px 10px; text-align: center; border: 1px solid var(--border); }
   .matrix-table th.row-head, .matrix-table td.row-head { text-align: left; position: sticky; left: 0; background: var(--surface-1); z-index: 1; }
-  .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--on-accent); font-weight: 600; }
+  .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; }
   .matrix-table td.cell.zero { color: var(--text-muted); font-weight: 400; background: transparent !important; }
   .matrix-table td.total-cell { font-weight: 700; color: var(--text-primary); background: var(--page-plane) !important; }
 
@@ -822,16 +822,16 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
   }
-  .sentiment-badge.positive { background: rgba(79,211,154,0.16); color: var(--pos); }
-  .sentiment-badge.negative { background: rgba(226,88,90,0.16); color: var(--neg); }
-  .sentiment-badge.neutral { background: rgba(124,143,132,0.2); color: var(--text-secondary); }
+  .sentiment-badge.positive { background: rgba(35,92,121,0.16); color: var(--pos); }
+  .sentiment-badge.negative { background: rgba(178,58,46,0.16); color: var(--neg); }
+  .sentiment-badge.neutral { background: rgba(147,129,108,0.2); color: var(--text-secondary); }
   .verified-badge {
     display: inline-block;
     font-size: 10.5px;
     font-weight: 600;
     padding: 2px 9px;
     border-radius: 999px;
-    background: rgba(79,211,154,0.16);
+    background: rgba(35,92,121,0.16);
     color: var(--pos);
   }
   .mention-text-cell { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
@@ -2671,7 +2671,7 @@ function painPointValue(item) {
   return denom > 0 ? item.positive / denom : null;
 }
 
-// red (0) → orange (1) → green (2) → no data (3); ties broken by higher volume first
+// red (0) → amber (1) → blue/"good" (2) → no data (3); ties broken by higher volume first
 function sortByPainPointSeverity(items) {
   const band = v => v === null ? 3 : v < 0.4 ? 0 : v < 0.7 ? 1 : 2;
   return items.slice().sort((a, b) => {
@@ -2864,9 +2864,9 @@ function lerpColor(hex1, hex2, t) {
 }
 // discrete quantile-based levels (GitHub-heatmap style) read much more clearly than
 // a smooth gradient, which flattens differences when most values cluster together.
-// Blue (not mint/green) — this matrix is pure volume, not sentiment, so it shouldn't
-// borrow the "positive" color and imply a value judgement that isn't there.
-const HEATMAP_LEVEL_COLORS = [0, 0.32, 0.58, 0.8, 1.0].map(t => lerpColor('#1c2a33', '#FFFFE0', t));
+// Warm neutral umber (not pos/neg/brand) — this matrix is pure volume, not sentiment,
+// so it shouldn't borrow a color that implies a value judgement that isn't there.
+const HEATMAP_LEVEL_COLORS = [0, 0.32, 0.58, 0.8, 1.0].map(t => lerpColor('#f3e0c4', '#5b3a1e', t));
 function quantileThresholds(values) {
   const nonZero = values.filter(v => v > 0).slice().sort((a, b) => a - b);
   if (!nonZero.length) return [1, 1, 1];
