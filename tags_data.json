@@ -1,0 +1,895 @@
+{
+  "total_tags": 473,
+  "group1": "Car product",
+  "group2_summary": [
+    {
+      "name": "Interior",
+      "count": 97
+    },
+    {
+      "name": "Electronics",
+      "count": 96
+    },
+    {
+      "name": "eMobility",
+      "count": 85
+    },
+    {
+      "name": "Exterior",
+      "count": 58
+    },
+    {
+      "name": "Chassis",
+      "count": 39
+    },
+    {
+      "name": "Connectivity",
+      "count": 33
+    },
+    {
+      "name": "Transmission",
+      "count": 22
+    },
+    {
+      "name": "Braking system",
+      "count": 20
+    },
+    {
+      "name": "Software",
+      "count": 9
+    },
+    {
+      "name": "Image",
+      "count": 8
+    },
+    {
+      "name": "Engine",
+      "count": 6
+    }
+  ],
+  "hierarchy": {
+    "Connectivity": [
+      {
+        "name": "Tesla Connect",
+        "count": 11,
+        "tags": [
+          "Connected car features",
+          "Data sharing",
+          "LTE data plan",
+          "Live traffic visualization",
+          "Premium Connectivity",
+          "Remote access",
+          "Tesla API",
+          "Tesla Connect",
+          "Tesla connected services",
+          "Vehicle telemetry",
+          "Wi-Fi connectivity to vehicle"
+        ]
+      },
+      {
+        "name": "Tesla App",
+        "count": 9,
+        "tags": [
+          "Charging monitoring",
+          "Climate pre-conditioning",
+          "Location sharing",
+          "Lock and unlock via app",
+          "Remote vehicle control",
+          "Scheduled charging",
+          "Software update notifications",
+          "Tesla App",
+          "Valet mode"
+        ]
+      },
+      {
+        "name": "3rd Party Apps",
+        "count": 7,
+        "tags": [
+          "3rd Party Apps",
+          "Stats for Tesla",
+          "TeslaFi",
+          "TeslaMate",
+          "Tessie",
+          "Third-party Tesla services",
+          "Unofficial API clients"
+        ]
+      },
+      {
+        "name": "Webapps",
+        "count": 6,
+        "tags": [
+          "Chess",
+          "In-car browser",
+          "Native",
+          "Solitaire",
+          "The Witcher",
+          "Webapps"
+        ]
+      }
+    ],
+    "Electronics": [
+      {
+        "name": "Autopilot / Driver Assistance",
+        "count": 17,
+        "tags": [
+          "AEB",
+          "Auto lane change",
+          "Automatic emergency braking",
+          "Autopark",
+          "Autopilot",
+          "Autopilot or Driver Assistance",
+          "Enhanced Autopilot",
+          "FSD",
+          "Forward collision warning",
+          "Full Self-Driving",
+          "Lane keeping assist",
+          "Navigate on Autopilot",
+          "Smart Summon",
+          "Summon",
+          "TACC",
+          "Traffic light and stop sign control",
+          "Traffic-Aware Cruise Control"
+        ]
+      },
+      {
+        "name": "Infotainment",
+        "count": 12,
+        "tags": [
+          "Bluetooth audio",
+          "Gaming",
+          "Infotainment",
+          "Internet browser",
+          "Media playback",
+          "Netflix",
+          "Spotify",
+          "Streaming",
+          "Tesla Voice",
+          "Twitch",
+          "Voice commands",
+          "YouTube"
+        ]
+      },
+      {
+        "name": "Camera",
+        "count": 12,
+        "tags": [
+          "Autopilot cameras",
+          "B-pillar",
+          "Backup camera",
+          "Cabin camera",
+          "Camera",
+          "Dashcam",
+          "Driver monitoring",
+          "Front camera",
+          "Rear camera",
+          "Sentry Mode camera",
+          "Side cameras",
+          "TeslaCam"
+        ]
+      },
+      {
+        "name": "Locking System",
+        "count": 10,
+        "tags": [
+          "Bluetooth",
+          "Key card",
+          "Key fob",
+          "Locking",
+          "Locking System",
+          "Optional",
+          "PIN to Drive",
+          "Passive entry",
+          "Phone key",
+          "Walk-away locking"
+        ]
+      },
+      {
+        "name": "Driving Mode",
+        "count": 9,
+        "tags": [
+          "Chill mode",
+          "Drag race mode",
+          "Driving Mode",
+          "Driving behaviour settings",
+          "Eco driving",
+          "Ludicrous mode",
+          "Sport mode",
+          "Track mode",
+          "Traction control"
+        ]
+      },
+      {
+        "name": "Navigation",
+        "count": 8,
+        "tags": [
+          "Arrival state of charge",
+          "Built-in Tesla navigation",
+          "Energy-optimized routing",
+          "GPS",
+          "Navigation",
+          "Route planning",
+          "Supercharger routing",
+          "Trip planner"
+        ]
+      },
+      {
+        "name": "Sentry Mode / TeslaCam",
+        "count": 8,
+        "tags": [
+          "Cabin camera recording",
+          "Dashcam clips",
+          "Dashcam mode",
+          "Parking surveillance footage",
+          "Sentry Mode",
+          "Sentry Mode alerts",
+          "Sentry Mode or TeslaCam",
+          "USB drive for TeslaCam"
+        ]
+      },
+      {
+        "name": "Calls",
+        "count": 6,
+        "tags": [
+          "Bluetooth phone calls",
+          "Call via touchscreen",
+          "Calls",
+          "Emergency call",
+          "SOS",
+          "Voice commands for calls"
+        ]
+      },
+      {
+        "name": "Wireless Charging",
+        "count": 5,
+        "tags": [
+          "Inductive charging",
+          "Qi",
+          "USB-C charging in cabin",
+          "Wireless Charging",
+          "Wireless charging pad"
+        ]
+      },
+      {
+        "name": "LTE Module",
+        "count": 5,
+        "tags": [
+          "Cellular connectivity",
+          "LTE Module",
+          "Maps",
+          "Mobile data for vehicle",
+          "Tesla Premium Connectivity data plan"
+        ]
+      },
+      {
+        "name": "Wi-Fi Hotspot",
+        "count": 4,
+        "tags": [
+          "Hotspot password",
+          "In-car Wi-Fi",
+          "In-vehicle Wi-Fi hotspot",
+          "Wi-Fi Hotspot"
+        ]
+      }
+    ],
+    "eMobility": [
+      {
+        "name": "Charging",
+        "count": 11,
+        "tags": [
+          "AC charging",
+          "CCS",
+          "Charge limit settings",
+          "Charge scheduling",
+          "Charging",
+          "Charging speed",
+          "DC fast charging",
+          "EV high-voltage battery charging",
+          "Home charging",
+          "Supercharger",
+          "Third-party networks"
+        ]
+      },
+      {
+        "name": "Traction Battery",
+        "count": 11,
+        "tags": [
+          "Battery capacity",
+          "Battery degradation",
+          "Battery health",
+          "Battery pack",
+          "Cell-to-cell variation",
+          "LFP chemistry",
+          "NCA chemistry",
+          "NMC chemistry",
+          "SoH",
+          "State of health",
+          "Traction Battery"
+        ]
+      },
+      {
+        "name": "Range",
+        "count": 11,
+        "tags": [
+          "Battery range",
+          "EPA range",
+          "Efficiency",
+          "Energy consumption",
+          "Range",
+          "Range anxiety",
+          "Range in cold weather",
+          "Real-world range",
+          "WLTP range",
+          "Wh/km",
+          "Wh/mi"
+        ]
+      },
+      {
+        "name": "Charging Hardware",
+        "count": 10,
+        "tags": [
+          "CCS2 adapter",
+          "Charging Hardware",
+          "Charging cable",
+          "Charging port",
+          "Charging port cover",
+          "Charging port latch",
+          "Mobile connector",
+          "NACS connector",
+          "North American Charging Standard",
+          "Wall Connector"
+        ]
+      },
+      {
+        "name": "Supercharger Network",
+        "count": 10,
+        "tags": [
+          "Charging at Supercharger station",
+          "Magic Dock",
+          "Non-Tesla access to Supercharger",
+          "Open network",
+          "Peak pricing at Supercharger",
+          "Supercharger Network",
+          "Supercharger V2",
+          "Supercharger V3",
+          "Supercharger V4",
+          "Supercharger availability and routing"
+        ]
+      },
+      {
+        "name": "Battery Management System (BMS)",
+        "count": 9,
+        "tags": [
+          "BMS",
+          "Battery Management System",
+          "Battery protection",
+          "Cell balancing",
+          "Charge curve",
+          "Maximum charge level",
+          "Scheduled charging settings",
+          "SoC",
+          "State of charge"
+        ]
+      },
+      {
+        "name": "Thermal Management System",
+        "count": 8,
+        "tags": [
+          "Battery thermal management",
+          "Coolant circuit",
+          "Heat dissipation",
+          "Heat pump circuit component",
+          "Liquid cooling",
+          "Octovalve",
+          "Thermal Management System",
+          "Thermal throttling"
+        ]
+      },
+      {
+        "name": "Pre-conditioning",
+        "count": 5,
+        "tags": [
+          "Battery pre-conditioning",
+          "Cabin pre-conditioning",
+          "Pre-conditioning",
+          "Scheduled departure",
+          "Seat preheating via app"
+        ]
+      },
+      {
+        "name": "12V Battery",
+        "count": 5,
+        "tags": [
+          "12V Battery",
+          "12V battery health",
+          "12V battery replacement",
+          "Low-voltage system",
+          "Vampire drain on 12V"
+        ]
+      },
+      {
+        "name": "Heat Pump",
+        "count": 5,
+        "tags": [
+          "Cold weather efficiency",
+          "Heat Pump",
+          "Heat pump failure",
+          "Heat pump noise",
+          "Heat pump range impact"
+        ]
+      }
+    ],
+    "Exterior": [
+      {
+        "name": "Trunk and Frunk",
+        "count": 11,
+        "tags": [
+          "Boot",
+          "Cargo organizer",
+          "Front storage compartment",
+          "Front trunk",
+          "Frunk",
+          "Power liftgate",
+          "Rear cargo area",
+          "Trunk",
+          "Trunk and Frunk",
+          "Trunk liner",
+          "Trunk storage"
+        ]
+      },
+      {
+        "name": "Body Panels",
+        "count": 9,
+        "tags": [
+          "Body Panels",
+          "Bumpers",
+          "Doors",
+          "Fenders",
+          "Glass roof panels",
+          "Hood",
+          "Pillars",
+          "Quarter panels",
+          "Roof"
+        ]
+      },
+      {
+        "name": "Windows",
+        "count": 8,
+        "tags": [
+          "Front windshield",
+          "Panoramic glass roof",
+          "Rear windshield",
+          "Side windows",
+          "Sunshade",
+          "Window sealing",
+          "Window squeak",
+          "Windows"
+        ]
+      },
+      {
+        "name": "Wipers and Washers",
+        "count": 8,
+        "tags": [
+          "Auto wipers",
+          "Rain sensor",
+          "Wash nozzles",
+          "Washer fluid",
+          "Wiper chattering",
+          "Wiper speed",
+          "Wipers",
+          "Wipers and Washers"
+        ]
+      },
+      {
+        "name": "Exterior Design",
+        "count": 8,
+        "tags": [
+          "Color",
+          "Exterior Design",
+          "Exterior trim",
+          "Facelift",
+          "Overall silhouette",
+          "Paint quality",
+          "Panel gaps",
+          "Project Juniper"
+        ]
+      },
+      {
+        "name": "Lights",
+        "count": 7,
+        "tags": [
+          "Auto high beams",
+          "Daytime running lights",
+          "Exterior illumination",
+          "Lights",
+          "Main lights",
+          "Puddle lights",
+          "Sequential turn signals"
+        ]
+      },
+      {
+        "name": "Mirrors",
+        "count": 7,
+        "tags": [
+          "Auto-dimming",
+          "Blind spot warning via mirrors",
+          "Camera mirror or traditional",
+          "Mirrors",
+          "Rear-view camera",
+          "Side mirrors",
+          "Wing mirrors"
+        ]
+      }
+    ],
+    "Software": [
+      {
+        "name": "Software and Updates",
+        "count": 9,
+        "tags": [
+          "Firmware updates",
+          "New features delivered via update",
+          "OTA",
+          "Over the air update",
+          "Rollback issues",
+          "Software and Updates",
+          "Software version notes",
+          "Update changelog",
+          "Vehicle software updates"
+        ]
+      }
+    ],
+    "Braking system": [
+      {
+        "name": "Brakes",
+        "count": 8,
+        "tags": [
+          "ABS",
+          "Brake fluid",
+          "Brake hold",
+          "Brake pads",
+          "Brakes",
+          "Emergency braking",
+          "Pedal-operated friction braking",
+          "Squeaking brakes"
+        ]
+      },
+      {
+        "name": "Regenerative Braking",
+        "count": 8,
+        "tags": [
+          "CREEP stopping mode",
+          "Energy recovery",
+          "HOLD stopping mode",
+          "One-pedal driving",
+          "ROLL stopping mode",
+          "Regen strength settings",
+          "Regenerative Braking",
+          "Regenerative braking feel"
+        ]
+      },
+      {
+        "name": "Parking Brake",
+        "count": 4,
+        "tags": [
+          "Auto-hold",
+          "Electronic parking brake",
+          "Hill hold",
+          "Parking Brake"
+        ]
+      }
+    ],
+    "Interior": [
+      {
+        "name": "Seats",
+        "count": 14,
+        "tags": [
+          "7-seat option",
+          "Electric seat adjustment",
+          "Fabric upholstery",
+          "Front seats",
+          "Heated seats",
+          "Lumbar support",
+          "Manual seat adjustment",
+          "Rear seats",
+          "Seat adjustment",
+          "Seat material",
+          "Seats",
+          "Third-row seats",
+          "Vegan leather",
+          "Ventilated seats"
+        ]
+      },
+      {
+        "name": "Touchscreen / Display",
+        "count": 11,
+        "tags": [
+          "Display",
+          "Display brightness",
+          "Main 15.4-inch touchscreen",
+          "Menu navigation",
+          "Second screen",
+          "Swipe gestures",
+          "Tesla UI",
+          "Touchscreen",
+          "Touchscreen or Display",
+          "Touchscreen responsiveness",
+          "UI/UX"
+        ]
+      },
+      {
+        "name": "Interior Design",
+        "count": 11,
+        "tags": [
+          "Ambient light integration",
+          "Black",
+          "Dashboard trim",
+          "Grey",
+          "Interior Design",
+          "Interior color options",
+          "Minimalist interior",
+          "Storage design",
+          "Upholstery",
+          "White",
+          "Wood trim"
+        ]
+      },
+      {
+        "name": "HVAC",
+        "count": 9,
+        "tags": [
+          "Air-conditioning",
+          "Battery thermal management via HVAC",
+          "Cabin air filter",
+          "Climate zones",
+          "Defrost",
+          "Fan speed",
+          "HVAC",
+          "Heating",
+          "Ventilation"
+        ]
+      },
+      {
+        "name": "Other Equipment",
+        "count": 9,
+        "tags": [
+          "12V outlet",
+          "Cargo cover",
+          "Non-center",
+          "Other Equipment",
+          "Roof rack compatibility",
+          "Spare tire kit",
+          "Tow hitch",
+          "USB-C ports",
+          "Under-trunk storage"
+        ]
+      },
+      {
+        "name": "Buttons and Controls",
+        "count": 8,
+        "tags": [
+          "Brake hold button",
+          "Buttons and Controls",
+          "Door handles",
+          "Hazard button",
+          "Interior",
+          "Turn signal stalk",
+          "Window buttons",
+          "Wiper stalk"
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "count": 7,
+        "tags": [
+          "Dashboard",
+          "Dashboard area",
+          "Dashboard materials",
+          "Dashboard rattle",
+          "Driver-facing panel",
+          "Minimal dashboard design",
+          "Physical controls"
+        ]
+      },
+      {
+        "name": "Airbags",
+        "count": 6,
+        "tags": [
+          "Airbag deployment",
+          "Airbag recall",
+          "Airbags",
+          "Curtain airbags",
+          "Front airbags",
+          "Side airbags"
+        ]
+      },
+      {
+        "name": "Interior and Decorative Lighting",
+        "count": 6,
+        "tags": [
+          "Ambient lighting",
+          "Footwell lights",
+          "Interior LED strips",
+          "Interior and Decorative Lighting",
+          "Overhead lights",
+          "Reading lights"
+        ]
+      },
+      {
+        "name": "Pedals",
+        "count": 6,
+        "tags": [
+          "Accelerator pedal",
+          "Brake pedal",
+          "Dead pedal",
+          "Pedal box",
+          "Pedal feel",
+          "Pedals"
+        ]
+      },
+      {
+        "name": "Center Console",
+        "count": 5,
+        "tags": [
+          "Armrest",
+          "Center Console",
+          "Center storage compartment",
+          "Cup holders",
+          "USB-C ports in center"
+        ]
+      },
+      {
+        "name": "Steering Wheel",
+        "count": 5,
+        "tags": [
+          "Heated steering wheel",
+          "Horn",
+          "Steering Wheel",
+          "Steering wheel buttons",
+          "Steering wheel scroll wheels"
+        ]
+      }
+    ],
+    "Image": [
+      {
+        "name": "Legal Issues",
+        "count": 8,
+        "tags": [
+          "EU regulation",
+          "Elon Musk legal statements",
+          "FSD and Autopilot legal cases",
+          "Legal Issues",
+          "NHTSA",
+          "Product liability",
+          "Regulatory action",
+          "Threats of lawsuit against Tesla"
+        ]
+      }
+    ],
+    "Chassis": [
+      {
+        "name": "Tires",
+        "count": 10,
+        "tags": [
+          "Acoustic foam tires",
+          "All-season",
+          "Flat tire",
+          "Summer tires",
+          "TPMS",
+          "Tire pressure",
+          "Tire rotation",
+          "Tire wear",
+          "Tires",
+          "Tyres"
+        ]
+      },
+      {
+        "name": "Wheels",
+        "count": 8,
+        "tags": [
+          "Aero covers",
+          "Aftermarket wheels",
+          "Hubcaps",
+          "Lug nuts",
+          "Wheel design",
+          "Wheel offset",
+          "Wheel rims",
+          "Wheels"
+        ]
+      },
+      {
+        "name": "Steering System",
+        "count": 8,
+        "tags": [
+          "EPS",
+          "Electric power steering",
+          "One-finger steering warning",
+          "Steering System",
+          "Steering feel",
+          "Steering rack",
+          "Steering ratio",
+          "Steering weight"
+        ]
+      },
+      {
+        "name": "Suspension System",
+        "count": 7,
+        "tags": [
+          "Adaptive dampers",
+          "Coil springs",
+          "Ride height",
+          "Suspension System",
+          "Suspension comfort",
+          "Suspension noise",
+          "Suspension tuning"
+        ]
+      },
+      {
+        "name": "Axles",
+        "count": 6,
+        "tags": [
+          "Axle shafts",
+          "Axles",
+          "CV boots",
+          "Drive axle",
+          "Front axle",
+          "Rear axle"
+        ]
+      }
+    ],
+    "Transmission": [
+      {
+        "name": "Drive Unit",
+        "count": 11,
+        "tags": [
+          "AWD",
+          "Drive Unit",
+          "Dual motor",
+          "Electric drive unit",
+          "Electric motor",
+          "Front motor",
+          "Motor efficiency",
+          "Motor noise",
+          "Motor output",
+          "Rear motor",
+          "Single-speed reduction gear"
+        ]
+      },
+      {
+        "name": "Gear Selector / Drive Stalk",
+        "count": 6,
+        "tags": [
+          "Auto-shift into Drive and Reverse",
+          "Gear Selector or Drive Stalk",
+          "Gear selector",
+          "PRND selection",
+          "Right drive stalk",
+          "Touchscreen gear selection"
+        ]
+      },
+      {
+        "name": "Driveshaft",
+        "count": 5,
+        "tags": [
+          "CV joints",
+          "Driveshaft",
+          "Driveshaft vibration",
+          "Half-shafts",
+          "Power transfer"
+        ]
+      }
+    ],
+    "Engine": [
+      {
+        "name": "Cooling System",
+        "count": 6,
+        "tags": [
+          "Coolant flush",
+          "Coolant pump",
+          "Cooling System",
+          "Cooling system for power electronics",
+          "Radiator",
+          "Water cooling for inverter"
+        ]
+      }
+    ]
+  }
+}

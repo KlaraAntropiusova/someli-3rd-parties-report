@@ -1,0 +1,3616 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Tesla Model Y — Social Listening Reporting</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Fixed Škoda-style dark green / mint brand palette — declared on :root so
+     html/body (ancestors of .viz-root) can see it too, not just descendants. */
+  :root {
+    color-scheme: dark;
+    --surface-1:      #173029;
+    --surface-2:      #1d3a31;
+    --page-plane:     #0e211c;
+    --text-primary:   #eafbf1;
+    --text-secondary: #a7d6c1;
+    --text-muted:     #77a08e;
+    --gridline:       #2c4a40;
+    --baseline:       #3c5f52;
+    --border:         rgba(167,214,193,0.16);
+    --series-1:       #4fd39a;
+    --series-1-soft:  rgba(79,211,154,0.14);
+    --seq-100:        #a8ecc9;
+    --seq-700:        #1f6b4c;
+    --hover-wash:     rgba(79,211,154,0.10);
+    --neg:            #e2585a;
+    --neutral-fill:   #7c8f84;
+    --pos:            #4fd39a;
+    --accent-warm:    #e0a63e;
+    --on-accent:      #0e211c;
+    --shadow-sm:      0 1px 2px rgba(0,0,0,0.25);
+    --shadow-md:      0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  html {
+    background: var(--page-plane);
+  }
+  body {
+    background: var(--page-plane);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .viz-root {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 32px 64px;
+  }
+
+  /* header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 4px 24px;
+  }
+  .brand-eyebrow {
+    margin: 0 0 2px;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--series-1);
+    line-height: 1.1;
+  }
+  header h1 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 3px;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+    color: var(--text-secondary);
+  }
+  .tagline {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  /* header meta block — visually separated stat cluster, right-aligned */
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex: 0 0 auto;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 20px;
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 64px;
+  }
+  .meta-value {
+    font-size: 17px;
+    font-weight: 650;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  .meta-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .meta-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--border);
+    flex: 0 0 auto;
+  }
+  .meta-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .meta-range-inputs input[type="date"] {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    padding: 0;
+    cursor: pointer;
+    color-scheme: dark;
+  }
+  .meta-range-inputs input[type="date"]:focus { outline: 1px solid var(--series-1); border-radius: 4px; }
+  .meta-range-sep { color: var(--text-muted); font-size: 13px; }
+  .verified-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--series-1);
+    border-radius: 14px;
+    padding: 14px 20px;
+    margin-bottom: 22px;
+  }
+  .verified-banner-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .verified-segmented {
+    display: flex;
+    gap: 4px;
+    background: var(--page-plane);
+    border-radius: 11px;
+    padding: 4px;
+  }
+  .verified-seg-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .verified-seg-btn:hover:not(.active) { background: var(--hover-wash); color: var(--text-primary); }
+  .verified-seg-btn.active {
+    background: var(--series-1);
+    color: var(--on-accent);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* layout: sidebar + content */
+  .layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  /* sidebar nav */
+  .tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 0 0 220px;
+    position: sticky;
+    top: 24px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+  .tabs .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 14px 12px 4px;
+  }
+  .tabs .nav-section-label:first-child { padding-top: 4px; }
+  .tabs button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13.5px;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tabs button .tab-icon {
+    font-size: 15px;
+    flex: 0 0 auto;
+    width: 20px;
+    text-align: center;
+  }
+  .tabs button:hover {
+    background: var(--hover-wash);
+    color: var(--text-primary);
+  }
+  .tabs button.active {
+    color: #fff;
+    background: var(--series-1);
+    font-weight: 600;
+  }
+  .content { flex: 1 1 auto; min-width: 0; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-size: 15px;
+    margin: 0 0 4px;
+    color: var(--text-primary);
+  }
+  .card .sub {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin: 0 0 18px;
+  }
+  .view-toggle {
+    display: flex;
+    gap: 4px;
+    font-size: 12px;
+    background: var(--page-plane);
+    padding: 3px;
+    border-radius: 9px;
+  }
+  .view-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    border-radius: 7px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .view-toggle button.active {
+    background: var(--series-1);
+    color: #fff;
+  }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  /* stat tiles */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .stat-tile {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-tile::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--series-1);
+  }
+  .stat-tile .icon { font-size: 15px; margin-bottom: 8px; display: block; }
+  .stat-tile .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin: 0 0 6px;
+  }
+  .stat-tile .value {
+    font-size: 25px;
+    font-weight: 650;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  /* bar chart (tag taxonomy) */
+  .bar-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 40px;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 8px;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .bar-row:hover { background: var(--hover-wash); }
+  .bar-row.selected { background: var(--series-1-soft); }
+  .bar-label {
+    font-size: 13px;
+    color: var(--text-primary);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    background: var(--gridline);
+    border-radius: 5px;
+    height: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill {
+    background: var(--series-1);
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.35s ease;
+  }
+  .bar-row.selected .bar-fill { background: var(--seq-700); }
+  .bar-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  /* drilldown */
+  #drilldown { display: none; }
+  #drilldown.open { display: block; }
+  #drilldown h2 { display: flex; align-items: center; gap: 8px; }
+  .g3-chip-group { margin-bottom: 16px; }
+  .g3-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 7px;
+    color: var(--text-primary);
+  }
+  .g3-count {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .chip:hover { background: var(--series-1-soft); color: var(--text-primary); }
+  .empty-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* table view */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+  }
+  th {
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  tbody tr:hover { background: var(--hover-wash); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  table.trending-table { table-layout: fixed; width: 100%; }
+  table.trending-table th:not(:first-child),
+  table.trending-table td:not(:first-child) { width: 110px; }
+
+  /* legend */
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    background: var(--page-plane);
+    padding: 8px 14px;
+    border-radius: 10px;
+    width: fit-content;
+  }
+  .legend .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* sentiment share bars (100%-stacked) */
+  .sent-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 130px;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 8px;
+    cursor: default;
+    border-radius: 8px;
+  }
+  .sent-row:hover { background: var(--hover-wash); }
+  .sent-label {
+    font-size: 13px;
+    color: var(--text-primary);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sent-track {
+    display: flex;
+    height: 18px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--gridline);
+  }
+  .sent-seg { height: 100%; }
+  .sent-seg.neg { background: var(--neg); }
+  .sent-seg.neu { background: var(--neutral-fill); }
+  .sent-seg.pos { background: var(--pos); }
+  .sent-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* monthly trend stacked bars */
+  .trend-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 32px;
+    height: 220px;
+    padding: 10px 20px 0;
+  }
+  .trend-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    width: 90px;
+  }
+  .trend-bar {
+    width: 56px;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    transition: transform 0.15s ease;
+  }
+  .trend-col:hover .trend-bar { transform: translateY(-2px); }
+  .trend-seg { width: 100%; }
+  .trend-total {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .trend-month {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+    background: var(--page-plane);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  /* issues table */
+  .issue-row {
+    border-bottom: 1px solid var(--gridline);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .issue-row:hover { background: var(--hover-wash); }
+  .issue-row td { padding: 9px 10px; font-size: 13px; }
+  .issue-detail {
+    display: none;
+    padding: 12px 16px 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    background: var(--page-plane);
+    border-radius: 0 0 10px 10px;
+  }
+  .issue-detail.open { display: block; animation: fadeIn 0.2s ease; }
+  .issue-detail .summary { margin: 0 0 10px; color: var(--text-primary); }
+  .issue-detail .quote {
+    border-left: 2px solid var(--series-1);
+    padding-left: 12px;
+    margin: 0 0 8px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    background: var(--page-plane);
+    border-radius: 999px;
+  }
+
+  #tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--surface-1);
+    font-size: 12px;
+    padding: 7px 11px;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    z-index: 10;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+  }
+
+  #detail-popover {
+    position: fixed;
+    max-width: 340px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  #detail-popover.visible { opacity: 1; }
+  #detail-popover h4 {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    position: sticky;
+    top: 0;
+    background: var(--surface-2);
+  }
+  #detail-popover .quote {
+    border-left: 2px solid var(--series-1);
+    padding-left: 9px;
+    margin: 0 0 8px;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  #detail-popover .empty {
+    font-style: italic;
+    color: var(--text-muted);
+  }
+  .abs-bar-seg { cursor: pointer; }
+
+  /* detail modal (click on a bar segment) */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 30;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: min(640px, 92vw);
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h3 { margin: 0 0 4px; font-size: 15.5px; color: var(--text-primary); }
+  .modal-count { margin: 0; font-size: 11.5px; color: var(--text-muted); }
+  .modal-close-btn {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .modal-close-btn:hover { background: var(--hover-wash); color: var(--text-primary); }
+  .modal-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-toolbar input {
+    flex: 1 1 auto;
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+  .modal-toolbar input:focus { outline: 1px solid var(--series-1); }
+  .modal-toolbar select {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .modal-body {
+    overflow-y: auto;
+    padding: 8px 20px 20px;
+  }
+  .modal-quote {
+    border-bottom: 1px solid var(--gridline);
+    padding: 12px 0;
+  }
+  .modal-quote:last-child { border-bottom: none; }
+  .modal-quote-date {
+    margin: 0 0 4px;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .modal-quote-text {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .pp-row-highlight { background: var(--series-1-soft); font-weight: 600; }
+  .mini-gauge-card { cursor: pointer; border-radius: 10px; transition: background 0.15s ease; }
+  .mini-gauge-card:hover { background: var(--hover-wash); }
+  .pp-toggle-btn {
+    display: block;
+    margin: 12px 0 2px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+  }
+  .pp-toggle-btn:hover { background: var(--hover-wash); color: var(--text-primary); }
+
+  /* source x category matrix */
+  .table-scroll { overflow-x: auto; }
+  .matrix-table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+  .matrix-table th, .matrix-table td { padding: 7px 10px; text-align: center; border: 1px solid var(--border); }
+  .matrix-table th.row-head, .matrix-table td.row-head { text-align: left; position: sticky; left: 0; background: var(--surface-1); z-index: 1; }
+  .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--on-accent); font-weight: 600; }
+  .matrix-table td.cell.zero { color: var(--text-muted); font-weight: 400; background: transparent !important; }
+  .matrix-table td.total-cell { font-weight: 700; color: var(--text-primary); background: var(--page-plane) !important; }
+
+  /* keywords */
+  .keyword-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 40px;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 6px;
+  }
+  .keyword-label { font-size: 12.5px; color: var(--text-primary); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .keyword-count { font-size: 11.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .bigram-chip { cursor: pointer; }
+
+  .cat-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .cat-filter-pill {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .cat-filter-pill:hover { background: var(--hover-wash); color: var(--text-primary); }
+  .cat-filter-pill.active {
+    background: var(--series-1);
+    border-color: var(--series-1);
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+
+  /* mentions tab: filters, badges, pagination */
+  .mentions-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: end;
+  }
+  .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 150px;
+  }
+  .filter-field label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .filter-field select, .filter-field input {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+  .filter-field select:disabled { color: var(--text-muted); cursor: not-allowed; }
+  .filter-field input:focus, .filter-field select:focus { outline: 1px solid var(--series-1); }
+  .sentiment-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .sentiment-badge.positive { background: rgba(79,211,154,0.16); color: var(--pos); }
+  .sentiment-badge.negative { background: rgba(226,88,90,0.16); color: var(--neg); }
+  .sentiment-badge.neutral { background: rgba(124,143,132,0.2); color: var(--text-secondary); }
+  .verified-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: rgba(79,211,154,0.16);
+    color: var(--pos);
+  }
+  .mention-text-cell { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+  .mention-link { color: var(--series-1); text-decoration: none; font-size: 12px; font-weight: 600; }
+  .mention-link:hover { text-decoration: underline; }
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .pagination button {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+  .pagination button:disabled { color: var(--text-muted); cursor: not-allowed; opacity: 0.5; }
+  .pagination button:not(:disabled):hover { background: var(--hover-wash); }
+
+  /* pain-point index tab */
+  .painpoint-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .painpoint-panel {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 22px 20px;
+  }
+  .painpoint-panel h3 {
+    margin: 0 0 14px;
+    font-size: 14.5px;
+    color: var(--text-primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mini-gauge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 168px);
+    justify-content: start;
+    gap: 8px;
+  }
+  .mini-gauge-card {
+    padding: 10px 6px;
+    text-align: center;
+    border-radius: 10px;
+  }
+  .mini-gauge-card svg { display: block; margin: 0 auto; }
+  .mini-gauge-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+    min-height: 2.6em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.25;
+  }
+  .mini-gauge-stats {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .mini-gauge-stat { display: flex; flex-direction: column; align-items: center; }
+  .mini-gauge-stat b { font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .mini-gauge-stat span { font-size: 9px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.03em; margin-top: 1px; }
+
+  /* issues trend list */
+  .trend-issue-row {
+    display: grid;
+    grid-template-columns: 1fr 130px 70px;
+    align-items: center;
+    gap: 14px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .trend-issue-row:hover { background: var(--hover-wash); }
+  .trend-issue-row.selected { background: var(--series-1-soft); }
+  .trend-issue-label {
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trend-issue-label .aspect-tag {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    background: var(--page-plane);
+    border-radius: 999px;
+    padding: 1px 8px;
+  }
+  .mini-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 34px;
+  }
+  .mini-bar {
+    width: 14px;
+    border-radius: 3px 3px 0 0;
+    background: var(--gridline);
+    min-height: 2px;
+    transition: transform 0.15s ease;
+  }
+  .mini-bar.m0 { background: var(--seq-100); }
+  .mini-bar.m1 { background: var(--series-1); }
+  .mini-bar.m2 { background: var(--seq-700); }
+  .trend-issue-row:hover .mini-bar { transform: scaleY(1.05); }
+  .trend-issue-total {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* daily drilldown chart */
+  .daily-chart-wrap {
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+  .daily-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 140px;
+    min-width: 640px;
+    padding-top: 10px;
+    position: relative;
+  }
+  .daily-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    width: 6px;
+  }
+  .daily-bar {
+    width: 6px;
+    border-radius: 2px 2px 0 0;
+    background: var(--series-1);
+    min-height: 1px;
+  }
+  .daily-month-labels {
+    display: flex;
+    min-width: 640px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .daily-month-labels span { flex: 1; }
+
+  /* sources tab */
+  .source-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .source-favicon {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    background: var(--page-plane);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex: 0 0 auto;
+  }
+  .source-monthly-bars {
+    display: flex;
+    align-items: center;
+    height: 28px;
+  }
+  .mini-sparkline { display: block; overflow: visible; }
+  .source-sentiment-bar {
+    display: flex;
+    height: 14px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--gridline);
+    width: 100%;
+  }
+
+  /* ---------- overview tab ---------- */
+  .exec-summary-card { border-left: 3px solid var(--series-1); }
+  .exec-summary-body p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+  .exec-summary-body p:last-child { margin-bottom: 0; }
+  .exec-summary-body b { color: var(--text-primary); }
+  .exec-summary-body .risk b { color: var(--neg); }
+  .exec-summary-body .win b { color: var(--pos); }
+  .exec-summary-body .domain-tag {
+    display: inline-block;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    background: var(--page-plane);
+    border-radius: 999px;
+    padding: 1px 9px;
+    margin-left: 4px;
+  }
+  .overview-compare {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .quarter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .quarter-card {
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .quarter-card .month-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+  }
+  .quarter-card .vs-label {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+  .quarter-metric { margin-bottom: 12px; }
+  .quarter-metric:last-child { margin-bottom: 0; }
+  .quarter-metric .value {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .quarter-metric .value.pos { color: var(--pos); }
+  .quarter-metric .value.neg { color: var(--neg); }
+  .quarter-metric .value.delta { font-size: 15px; }
+  .quarter-metric .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    margin: 0 0 3px;
+  }
+  .compare-delta {
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+  .compare-delta.up.good { color: var(--pos); }
+  .compare-delta.up.bad { color: var(--neg); }
+  .compare-delta.down.good { color: var(--pos); }
+  .compare-delta.down.bad { color: var(--neg); }
+  .growth-mult { font-weight: 500; color: var(--text-muted); }
+
+  .overview-grid {
+    display: grid;
+    gap: 18px;
+    align-items: start;
+  }
+  .overview-grid.grid-2-1 { grid-template-columns: 2fr 1fr; }
+  .overview-grid.grid-1-1-1 { grid-template-columns: 1.2fr 1fr 1fr; }
+  .overview-grid.grid-1-1 { grid-template-columns: 1fr 1fr; }
+
+  /* absolute-value stacked bar (overview: sources / categories) */
+  .abs-bar-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 46px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 4px;
+  }
+  .abs-bar-label {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .abs-bar-track {
+    display: flex;
+    align-items: stretch;
+    height: 22px;
+    position: relative;
+  }
+  .abs-bar-seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--on-accent);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .abs-bar-seg.neg { background: var(--neg); }
+  .abs-bar-seg.pos { background: var(--pos); }
+  .abs-bar-seg.neu { background: var(--neutral-fill); color: var(--text-primary); }
+  .abs-bar-seg:first-child { border-radius: 4px 0 0 4px; }
+  .abs-bar-seg:last-child { border-radius: 0 4px 4px 0; }
+  .abs-bar-total {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .abs-bar-axis {
+    display: grid;
+    grid-template-columns: 130px 1fr 46px;
+    gap: 10px;
+    margin-top: 6px;
+    border-top: 1px dashed var(--border);
+    padding-top: 4px;
+  }
+  .abs-bar-axis-ticks {
+    position: relative;
+    height: 14px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .abs-bar-axis-ticks span { position: absolute; transform: translateX(-50%); }
+
+  /* donut */
+  .donut-wrap {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 6px 0;
+  }
+  .donut {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    position: relative;
+  }
+  .donut::after {
+    content: '';
+    position: absolute;
+    inset: 22px;
+    border-radius: 50%;
+    background: var(--surface-1);
+  }
+  .donut-total {
+    position: absolute;
+    inset: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--text-primary);
+  }
+  .donut-total span { font-size: 9.5px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+  .donut-legend .row { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
+  .donut-legend .row b { color: var(--text-primary); margin-left: auto; padding-left: 14px; font-variant-numeric: tabular-nums; }
+
+  /* line chart */
+  .line-chart-svg { width: 100%; height: 190px; }
+  .line-chart-svg .grid-line { stroke: var(--gridline); stroke-width: 1; }
+  .line-chart-svg .axis-label { fill: var(--text-muted); font-size: 9px; }
+  .line-path { fill: none; stroke-width: 2; }
+  .line-path.neg { stroke: var(--neg); }
+  .line-path.pos { stroke: var(--pos); }
+  .line-path.total { stroke: var(--accent-warm); stroke-dasharray: 3 3; }
+  .line-path.neutral { stroke: var(--neutral-fill); }
+  .line-hover-dot { r: 3; }
+
+  /* gauge */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; }
+  .gauge-svg { width: 100%; max-width: 220px; }
+  .gauge-value-label { font-size: 26px; font-weight: 700; fill: var(--text-primary); }
+  .gauge-scale-label { font-size: 10px; fill: var(--text-muted); }
+  .gauge-prev {
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+  }
+  .gauge-prev b { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <header>
+    <div>
+      <p class="brand-eyebrow">Tesla</p>
+      <h1>Model Y</h1>
+      <p class="tagline">Social Listening Reporting</p>
+    </div>
+    <div class="header-meta">
+      <div class="meta-item"><span class="meta-value" id="meta-mentions">–</span><span class="meta-label">Zmínek</span></div>
+      <div class="meta-divider"></div>
+      <div class="meta-item">
+        <div class="meta-range-inputs">
+          <input type="date" id="global-date-from" min="2026-05-01" max="2026-07-31" value="2026-05-01">
+          <span class="meta-range-sep">–</span>
+          <input type="date" id="global-date-to" min="2026-05-01" max="2026-07-31" value="2026-07-31">
+        </div>
+        <span class="meta-label">Období</span>
+      </div>
+      <div class="meta-divider"></div>
+      <div class="meta-item"><span class="meta-value" id="meta-tags">–</span><span class="meta-label">Tagů</span></div>
+    </div>
+  </header>
+
+  <div class="verified-banner" title="Ověřený uživatel = zmínka označená jako reálná zkušenost vlastníka/uživatele Tesla Model Y, ne obecná diskuze, novinový článek apod.">
+    <span class="verified-banner-label">Zobrazení dat</span>
+    <div class="verified-segmented">
+      <button class="verified-seg-btn active" data-verified="false">Všechny zmínky</button>
+      <button class="verified-seg-btn" data-verified="true">Jen ověření uživatelé Tesla Model Y</button>
+    </div>
+  </div>
+
+  <div class="layout">
+  <div class="tabs">
+    <p class="nav-section-label" style="padding-top:4px;">Přehled</p>
+    <button class="tab-btn active" data-tab="tab-overview">Celkový přehled</button>
+    <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
+    <button class="tab-btn" data-tab="tab-monthly-overview">Měsíční shrnutí</button>
+
+    <p class="nav-section-label">Sentiment &amp; problémy</p>
+    <button class="tab-btn" data-tab="tab-sentiment">Sentiment podle aspektu</button>
+    <button class="tab-btn" data-tab="tab-trend">Vývoj v čase</button>
+    <button class="tab-btn" data-tab="tab-issues">Top issues</button>
+    <button class="tab-btn" data-tab="tab-issues-trend">Vývoj issues</button>
+    <button class="tab-btn" data-tab="tab-painpoint-cat">Pain-point: kategorie</button>
+    <button class="tab-btn" data-tab="tab-painpoint-tags">Pain-point: tagy</button>
+    <button class="tab-btn" data-tab="tab-trending">Rostoucí negativita</button>
+    <button class="tab-btn" data-tab="tab-trending-pos">Rostoucí pozitivita</button>
+
+    <p class="nav-section-label">Zdroje &amp; obsah</p>
+    <button class="tab-btn" data-tab="tab-sources">Zdroje dat</button>
+    <button class="tab-btn" data-tab="tab-matrix">Zdroj × kategorie</button>
+    <button class="tab-btn" data-tab="tab-mentions">Zmínky</button>
+    <button class="tab-btn" data-tab="tab-keywords">Klíčová slova</button>
+
+    <p class="nav-section-label">Metodika dat</p>
+    <button class="tab-btn" data-tab="tab-tags">Tag taxonomie</button>
+  </div>
+
+  <div class="content">
+  <!-- TAB: Overview -->
+  <div class="tab-panel active" id="tab-overview">
+    <div class="card exec-summary-card">
+      <h2>Shrnutí měsíce</h2>
+      <div id="ov-exec-summary" class="exec-summary-body"></div>
+    </div>
+
+    <div class="card overview-compare">
+      <div class="toolbar" style="margin-bottom:14px;">
+        <div>
+          <h2 style="margin:0;">Poslední kvartál</h2>
+          <p class="sub" id="ov-quarter-sub" style="margin:2px 0 0;">Květen – Červenec 2026</p>
+        </div>
+      </div>
+      <div id="ov-quarter-rows" class="quarter-grid"></div>
+    </div>
+
+    <div class="overview-grid grid-2-1">
+      <div class="card">
+        <h2>Zmínky podle zdroje</h2>
+        <p class="sub">Top 6 domén · negativní / pozitivní / neutrální</p>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+          <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+          <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+        </div>
+        <div id="ov-sources-bar"></div>
+      </div>
+      <div class="card">
+        <h2>Sentiment celkem</h2>
+        <p class="sub">Podíl napříč celým obdobím<br><span style="color:var(--text-muted);font-size:11px;">(jazyk zmínek není v datech k dispozici)</span></p>
+        <div id="ov-donut"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Sentiment podle dne</h2>
+      <p class="sub" id="ov-line-sub">Květen–červenec 2026</p>
+      <div id="ov-line-chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>Top 8 kategorií</h2>
+      <p class="sub">Aspekty s nejvyšším objemem zmínek</p>
+      <div id="ov-categories-bar"></div>
+    </div>
+
+    <div class="card">
+      <h2>Pain-point index</h2>
+      <p class="sub">Podíl negativního sentimentu za aktuální měsíc (0 = žádné negativní zmínky, 1 = všechny zmínky negativní)</p>
+      <div id="ov-gauge"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Daily overview (day-to-day operations) -->
+  <div class="tab-panel" id="tab-daily-overview">
+    <div class="card exec-summary-card">
+      <h2>Denní provoz</h2>
+      <p class="sub">Operativní pohled pro každodenní sledování · posledních 14 dní dostupných dat, nezávisle na filtru období nahoře</p>
+      <div id="daily-ov-summary" class="exec-summary-body"></div>
+    </div>
+
+    <div class="card exec-summary-card">
+      <h2>Operativní doporučení</h2>
+      <p class="sub">Konkrétní kroky pro dnešní den / tento týden — na základě posledních 3 dnů dat</p>
+      <div id="daily-ov-recommendations" class="exec-summary-body"></div>
+    </div>
+
+    <div class="stat-row" id="daily-ov-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
+
+    <div class="card">
+      <h2>Vývoj za posledních 14 dní</h2>
+      <p class="sub" id="daily-ov-chart-sub"></p>
+      <div id="daily-ov-chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>Poslední dny</h2>
+      <p class="sub">Denní objem a sentiment, s mezidenním srovnáním</p>
+      <table class="trending-table">
+        <thead>
+          <tr>
+            <th>Den</th>
+            <th style="text-align:right;">Zmínky</th>
+            <th style="text-align:right;">Pozitivní</th>
+            <th style="text-align:right;">Negativní</th>
+            <th style="text-align:right;">Změna objemu</th>
+          </tr>
+        </thead>
+        <tbody id="daily-ov-table"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Rostoucí negativita — poslední dny</h2>
+      <p class="sub">Kategorie s největším nárůstem negativity za poslední 3 dny oproti předchozím 3 dnům</p>
+      <div id="daily-ov-watch"></div>
+    </div>
+
+    <div class="card">
+      <h2>Rostoucí pozitivita — poslední dny</h2>
+      <p class="sub">Kategorie s největším nárůstem pozitivity za poslední 3 dny oproti předchozím 3 dnům</p>
+      <div id="daily-ov-watch-pos"></div>
+    </div>
+
+    <div class="card">
+      <h2>Nejnovější negativní zmínky</h2>
+      <p class="sub">Posledních 5 negativních zmínek — pro rychlou kontrolu, co se právě děje</p>
+      <div id="daily-ov-recent-negative"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Monthly overview (strategic monthly review) -->
+  <div class="tab-panel" id="tab-monthly-overview">
+    <div class="card exec-summary-card">
+      <h2>Měsíční shrnutí</h2>
+      <p class="sub">Strategický pohled pro měsíční review</p>
+      <div id="monthly-ov-summary" class="exec-summary-body"></div>
+    </div>
+
+    <div class="stat-row" id="monthly-ov-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
+
+    <div class="card exec-summary-card">
+      <h2>Strategická doporučení</h2>
+      <div id="monthly-ov-recommendations" class="exec-summary-body"></div>
+    </div>
+
+    <div class="card">
+      <h2>Vývoj v čase</h2>
+      <p class="sub" id="monthly-ov-chart-sub"></p>
+      <div id="monthly-ov-chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>Výkon kategorií po měsících</h2>
+      <p class="sub">Objem a podíl negativity u každé kategorie ve zvoleném období</p>
+      <div class="table-scroll" id="monthly-ov-cat-table"></div>
+    </div>
+
+    <div class="card">
+      <h2>Přetrvávající problémy</h2>
+      <p class="sub">Témata, která se objevují ve více než jednom měsíci — nejde o jednorázový výkyv</p>
+      <div id="monthly-ov-recurring"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Tag taxonomy -->
+  <div class="tab-panel" id="tab-tags">
+    <div class="card" style="border-left:3px solid var(--border);">
+      <p class="sub" style="margin:0;">Referenční katalog dat — ukazuje, jak je 473 tagů strukturováno do kategorií a podkategorií. Pro samotnou analýzu sentimentu a problémů použijte záložky v sekci „Sentiment &amp; problémy".</p>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <div>
+          <h2>Kategorie tagů (group_2)</h2>
+          <p class="sub">Počet tagů podle kategorie · klikni na řádek pro rozpad na podkategorie a jednotlivé tagy</p>
+        </div>
+        <div class="view-toggle">
+          <button id="btn-chart" class="active">Graf</button>
+          <button id="btn-table">Tabulka</button>
+        </div>
+      </div>
+      <div id="chart"></div>
+      <div id="table-view" style="display:none;"></div>
+    </div>
+
+    <div class="card" id="drilldown">
+      <h2 id="drill-title">—</h2>
+      <p class="sub" id="drill-sub"></p>
+      <div id="drill-body"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Sentiment -->
+  <div class="tab-panel" id="tab-sentiment">
+    <div class="stat-row" id="sent-stats"></div>
+    <div class="card">
+      <h2>Podíl sentimentu podle aspektu</h2>
+      <p class="sub" id="sentiment-sort-sub">56 aspektů seřazeno podle počtu negativních zmínek (absolutní počty) · klikni „Zobrazit vše" pro kompletní seznam</p>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <div class="legend" style="margin-bottom:0;">
+          <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+          <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+          <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+        </div>
+        <div class="view-toggle">
+          <button id="btn-sort-negative" class="active">Nejvíc negativních</button>
+          <button id="btn-sort-positive">Nejvíc pozitivních</button>
+          <button id="btn-sort-total">Podle objemu</button>
+        </div>
+      </div>
+      <div id="sentiment-chart"></div>
+      <div class="toolbar" style="margin-top:12px;">
+        <button class="view-toggle-single" id="btn-show-more" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;">Zobrazit vše (56)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Trend -->
+  <div class="tab-panel" id="tab-trend">
+    <div class="card">
+      <h2>Vývoj sentimentu v čase</h2>
+      <p class="sub" id="trend-sub">Květen–červenec 2026 · denní vývoj sentimentu · klikni na bod v grafu pro detail dne</p>
+      <div class="cat-filter-row" id="trend-cat-filters"></div>
+      <div id="trend-chart"></div>
+    </div>
+    <div class="card" id="trend-day-panel" style="display:none;">
+      <h2 id="trend-day-title">—</h2>
+      <p class="sub" id="trend-day-sub"></p>
+      <p class="mini-gauge-title" style="text-align:left;min-height:0;margin:0 0 8px;">Dotčené kategorie</p>
+      <div id="trend-day-categories" class="chips" style="margin-bottom:18px;"></div>
+      <p class="mini-gauge-title" style="text-align:left;min-height:0;margin:0 0 8px;">Zmínky z tohoto dne</p>
+      <div id="trend-day-mentions" style="max-height:420px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Issues -->
+  <div class="tab-panel" id="tab-issues">
+    <div class="card">
+      <h2>Nejčastější issue klastry</h2>
+      <p class="sub" id="issues-sub">332 shluků problémů/témat seřazených podle počtu zmínek · klikni na řádek pro detail a ukázky citací</p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:24px;"></th>
+            <th>Aspekt</th>
+            <th>Issue</th>
+            <th>Měsíc</th>
+            <th style="text-align:right;">Zmínky</th>
+          </tr>
+        </thead>
+        <tbody id="issues-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Issues trend -->
+  <div class="tab-panel" id="tab-issues-trend">
+    <div class="card">
+      <h2>Top issues — vývoj v čase</h2>
+      <p class="sub">15 nejobjemnějších issue klastrů (napříč měsíci) · klikni na řádek pro denní rozpad zmínek</p>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--seq-100)"></span>2026-05</span>
+        <span><span class="swatch" style="background:var(--series-1)"></span>2026-06</span>
+        <span><span class="swatch" style="background:var(--seq-700)"></span>2026-07</span>
+      </div>
+      <div id="issues-trend-list"></div>
+    </div>
+    <div class="card" id="issues-daily-panel" style="display:none;">
+      <h2 id="issues-daily-title">—</h2>
+      <p class="sub" id="issues-daily-sub"></p>
+      <div id="issues-daily-chart"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Sources -->
+  <div class="tab-panel" id="tab-sources">
+    <div class="card">
+      <h2>Zdroje dat</h2>
+      <p class="sub" id="sources-sub">Top domény podle objemu zmínek · sloupce = objem po měsících, podíl = sentiment za celé období</p>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+        <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+        <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Zdroj</th>
+            <th style="text-align:right;">Zmínky</th>
+            <th style="text-align:right;">Podíl</th>
+            <th>Objem po měsících (05 / 06 / 07)</th>
+            <th style="width:220px;">Sentiment (celkem)</th>
+          </tr>
+        </thead>
+        <tbody id="sources-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: Mentions -->
+  <div class="tab-panel" id="tab-mentions">
+    <div class="card">
+      <h2>Zmínky</h2>
+      <p class="sub">Jednotlivé zmínky s filtrem podle tématu, kategorie, kanálu a sentimentu</p>
+      <div class="mentions-filters">
+        <div class="filter-field">
+          <label>Téma</label>
+          <select id="mf-topic" disabled>
+            <option>Tesla Model Y</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Od</label>
+          <input id="mf-date-from" type="date" min="2026-05-01" max="2026-07-31" value="2026-05-01">
+        </div>
+        <div class="filter-field">
+          <label>Do</label>
+          <input id="mf-date-to" type="date" min="2026-05-01" max="2026-07-31" value="2026-07-31">
+        </div>
+        <div class="filter-field">
+          <label>Kategorie</label>
+          <select id="mf-category">
+            <option value="">Vše</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Kanál</label>
+          <select id="mf-channel">
+            <option value="">Vše</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Sentiment</label>
+          <select id="mf-sentiment">
+            <option value="">Vše</option>
+            <option value="positive">Pozitivní</option>
+            <option value="neutral">Neutrální</option>
+            <option value="negative">Negativní</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Ověřeno</label>
+          <select id="mf-verified">
+            <option value="">Vše</option>
+            <option value="true">Jen ověření uživatelé</option>
+            <option value="false">Jen neověřené</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label>Hledat v textu</label>
+          <input id="mf-search" type="text" placeholder="klíčové slovo…">
+        </div>
+      </div>
+      <p class="sub" id="mentions-count" style="margin-top:14px;"></p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:130px;">Datum</th>
+            <th style="width:140px;">Kanál</th>
+            <th style="width:100px;">Sentiment</th>
+            <th style="width:90px;">Ověřeno</th>
+            <th>Text</th>
+            <th style="width:60px;">Odkaz</th>
+          </tr>
+        </thead>
+        <tbody id="mentions-body"></tbody>
+      </table>
+      <div class="pagination">
+        <button id="mf-prev">‹ Předchozí</button>
+        <span id="mf-page-label"></span>
+        <button id="mf-next">Další ›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: Pain-point index -->
+  <div class="tab-panel" id="tab-painpoint-cat">
+    <div class="card">
+      <h2>Pain-point index podle kategorie</h2>
+      <p class="sub">Index = pozitivní / (pozitivní + negativní) zmínky agregované za celou kategorii (group_2) · neutrální zmínky se do indexu nepočítají, jen do „Total“ · &lt;0,40 červená · 0,40–0,70 oranžová · &gt;0,70 zelená</p>
+    </div>
+    <div class="painpoint-panel">
+      <div class="mini-gauge-grid" id="painpoint-cat-grid"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Pain-point index by tag -->
+  <div class="tab-panel" id="tab-painpoint-tags">
+    <div class="card">
+      <h2>Pain-point index podle tagu</h2>
+      <p class="sub">Index = pozitivní / (pozitivní + negativní) zmínky u daného tagu · seskupeno podle kategorie (group_2) · zobrazeny jen tagy se zmínkami (459 z 473 v katalogu)</p>
+    </div>
+    <div class="painpoint-grid" id="painpoint-tags-grid"></div>
+  </div>
+
+  <!-- TAB: Trending -->
+  <div class="tab-panel" id="tab-trending">
+    <div class="card">
+      <h2>Rostoucí negativita</h2>
+      <p class="sub" id="trending-sub">Meziměsíční změna negativity podle aspektu</p>
+    </div>
+    <div id="trending-transitions"></div>
+  </div>
+
+  <!-- TAB: Trending positive -->
+  <div class="tab-panel" id="tab-trending-pos">
+    <div class="card">
+      <h2>Rostoucí pozitivita</h2>
+      <p class="sub" id="trending-pos-sub">Meziměsíční změna pozitivity podle aspektu</p>
+    </div>
+    <div id="trending-pos-transitions"></div>
+  </div>
+
+  <!-- TAB: Source x Category matrix -->
+  <div class="tab-panel" id="tab-matrix">
+    <div class="card">
+      <h2>Zdroj × kategorie</h2>
+      <p class="sub">Počet zmínek podle zdroje a kategorie · barva = intenzita v rámci celé matice · klikni na buňku pro zmínky</p>
+      <div class="table-scroll" id="matrix-table"></div>
+    </div>
+  </div>
+
+  <!-- TAB: Keywords -->
+  <div class="tab-panel" id="tab-keywords">
+    <div class="card">
+      <h2>Klíčová slova</h2>
+      <p class="sub">Nejčastější slova v textech zmínek (bez výplňových slov) · klikni pro zobrazení konkrétních zmínek</p>
+      <div class="legend">
+        <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+        <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+        <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+      </div>
+      <div id="keywords-bar"></div>
+    </div>
+    <div class="card">
+      <h2>Časté fráze</h2>
+      <p class="sub">Nejčastější dvouslovné fráze v textech zmínek</p>
+      <div class="chips" id="keywords-bigrams"></div>
+    </div>
+  </div>
+  </div>
+  </div>
+</div>
+<div id="tooltip"></div>
+<div id="detail-popover"></div>
+<div id="detail-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3 id="modal-title">—</h3>
+        <p class="modal-count" id="modal-count"></p>
+      </div>
+      <button id="modal-close" class="modal-close-btn" aria-label="Zavřít">&times;</button>
+    </div>
+    <div class="modal-toolbar">
+      <input id="modal-search" type="text" placeholder="Hledat v textu zmínek…">
+      <select id="modal-sort">
+        <option value="date-desc">Nejnovější</option>
+        <option value="date-asc">Nejstarší</option>
+        <option value="length-desc">Nejdelší</option>
+      </select>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const tooltip = document.getElementById('tooltip');
+let DATA = null;
+let SENT = null;
+let selected = null;
+let sentExpanded = false;
+
+/* ---------- global custom date range (applies across pages) ---------- */
+const ALL_MONTHS = ['2026-05', '2026-06', '2026-07'];
+let GLOBAL_RANGE = { from: '2026-05-01', to: '2026-07-31' };
+
+function monthsInGlobalRange() {
+  return ALL_MONTHS.filter(m => GLOBAL_RANGE.to >= (m + '-01') && GLOBAL_RANGE.from <= (m + '-31'));
+}
+let VERIFIED_ONLY = false;
+function sumMonthly(monthlyDict, months) {
+  const prefix = VERIFIED_ONLY ? 'v_' : '';
+  const out = { positive: 0, neutral: 0, negative: 0 };
+  months.forEach(m => {
+    const v = (monthlyDict && monthlyDict[m]) || {};
+    out.positive += v[prefix + 'positive'] || 0;
+    out.neutral += v[prefix + 'neutral'] || 0;
+    out.negative += v[prefix + 'negative'] || 0;
+  });
+  out.total = out.positive + out.neutral + out.negative;
+  return out;
+}
+function filterExamplesByRange(examples) {
+  return examples.filter(e =>
+    (!e.date || (e.date >= GLOBAL_RANGE.from && e.date <= GLOBAL_RANGE.to)) &&
+    (!VERIFIED_ONLY || e.verified));
+}
+
+/* ---------- true unique-mention counts (not aspect-instance counts) ----------
+   SENT.month_summary / DAILY.daily are built from v_mention_aspect.csv, where a single
+   mention contributes one row per aspect it touches — summing those overcounts mentions
+   with more than one aspect (20,055 rows vs 7,885 real mentions). Anything labeled
+   "zmínek" (mentions) must instead come from MENTIONS.mentions, which has exactly one
+   row per real mention, so per-month/per-day totals here actually sum to 7,885. */
+function trueMonthStats() {
+  const map = {};
+  ALL_MONTHS.forEach(m => { map[m] = { month: m, total: 0, positive: 0, neutral: 0, negative: 0 }; });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    const s = map[m.month];
+    if (!s) return;
+    s.total += 1;
+    s[m.sentiment] += 1;
+  });
+  return ALL_MONTHS.map(m => map[m]);
+}
+function trueDailyStats() {
+  const map = {};
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    const day = m.date.slice(0, 10);
+    if (!map[day]) map[day] = { positive: 0, neutral: 0, negative: 0 };
+    map[day][m.sentiment] += 1;
+  });
+  return map;
+}
+
+function showTooltip(evt, text) {
+  tooltip.textContent = text;
+  tooltip.style.left = (evt.clientX + 12) + 'px';
+  tooltip.style.top = (evt.clientY + 12) + 'px';
+  tooltip.style.opacity = '1';
+}
+function hideTooltip() { tooltip.style.opacity = '0'; }
+
+/* ---------- detail popover (example mentions on bar-segment hover) ---------- */
+const detailPopover = document.getElementById('detail-popover');
+const SENTIMENT_LABEL_CZ = { negative: 'negativní zmínky', positive: 'pozitivní zmínky', neutral: 'neutrální zmínky' };
+
+function positionDetailPopover(evt) {
+  const margin = 14;
+  let left = evt.clientX + margin;
+  let top = evt.clientY + margin;
+  const rect = detailPopover.getBoundingClientRect();
+  if (left + rect.width > window.innerWidth - 8) left = evt.clientX - rect.width - margin;
+  if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+  detailPopover.style.left = Math.max(8, left) + 'px';
+  detailPopover.style.top = Math.max(8, top) + 'px';
+}
+
+function showDetailPopover(evt, title, quotes) {
+  hideTooltip();
+  const preview = quotes.slice(0, 3);
+  detailPopover.innerHTML = `<h4>${title}</h4>` + (preview.length
+    ? preview.map(q => `<p class="quote">"${q.text}"</p>`).join('') +
+      (quotes.length > preview.length ? `<p class="empty">Klikni pro zobrazení všech (${quotes.length})</p>` : '')
+    : `<p class="empty">Žádné konkrétní zmínky k zobrazení.</p>`);
+  detailPopover.classList.add('visible');
+  positionDetailPopover(evt);
+}
+function hideDetailPopover() { detailPopover.classList.remove('visible'); }
+
+/* ---------- detail modal (click on a bar segment) ---------- */
+let MODAL_STATE = { examples: [], title: '' };
+
+function renderModalList() {
+  const search = document.getElementById('modal-search').value.trim().toLowerCase();
+  const sort = document.getElementById('modal-sort').value;
+  let list = MODAL_STATE.examples.filter(e => !search || e.text.toLowerCase().includes(search));
+  if (sort === 'date-desc') list = list.slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  else if (sort === 'date-asc') list = list.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  else if (sort === 'length-desc') list = list.slice().sort((a, b) => b.text.length - a.text.length);
+  const body = document.getElementById('modal-body');
+  document.getElementById('modal-count').textContent = `${list.length} z ${MODAL_STATE.examples.length} zmínek`;
+  body.innerHTML = list.length
+    ? list.map(e => `<div class="modal-quote">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <p class="modal-quote-date">${e.date || ''}</p>
+          ${e.url ? `<a class="mention-link" href="${e.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}
+        </div>
+        <p class="modal-quote-text">"${e.text}"</p>
+      </div>`).join('')
+    : `<p class="empty">Žádné zmínky neodpovídají hledání.</p>`;
+}
+
+function openDetailModal(title, examples) {
+  MODAL_STATE = { examples: filterExamplesByRange(examples), title };
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-search').value = '';
+  document.getElementById('modal-sort').value = 'date-desc';
+  renderModalList();
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.remove('open');
+}
+document.getElementById('modal-close').addEventListener('click', closeDetailModal);
+document.getElementById('detail-modal').addEventListener('click', e => {
+  if (e.target.id === 'detail-modal') closeDetailModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetailModal();
+});
+document.getElementById('modal-search').addEventListener('input', renderModalList);
+document.getElementById('modal-sort').addEventListener('change', renderModalList);
+
+/* ---------- pain-point gauge click → relevant mentions (reuses the mention detail modal) ---------- */
+function gaugePainPointExamples(exampleType, key) {
+  const bucket = EXAMPLES && EXAMPLES[exampleType] && EXAMPLES[exampleType][key];
+  if (!bucket) return [];
+  return [...(bucket.positive || []), ...(bucket.negative || [])];
+}
+function openPainPointMentions(item, exampleType, key) {
+  const value = painPointValue(item);
+  const valueLabel = value === null ? '–' : value.toFixed(2).replace('.', ',');
+  openDetailModal(`${item.label} — index ${valueLabel} (${item.positive} pozitivních, ${item.negative} negativních)`, gaugePainPointExamples(exampleType, key));
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById(btn.dataset.tab);
+    panel.classList.add('active');
+    document.querySelector('.header-meta').style.display = btn.dataset.tab === 'tab-mentions' ? 'none' : '';
+    fitAbsBarNumbers(panel);
+  });
+});
+
+/* ---------- tag taxonomy (tab 1) ---------- */
+function renderChart() {
+  const chart = document.getElementById('chart');
+  chart.innerHTML = '';
+  const max = DATA.group2_summary[0].count;
+  DATA.group2_summary.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'bar-row' + (selected === g.name ? ' selected' : '');
+    const pct = Math.round((g.count / DATA.total_tags) * 1000) / 10;
+    row.innerHTML = `
+      <div class="bar-label">${g.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(g.count/max*100).toFixed(1)}%"></div></div>
+      <div class="bar-count">${g.count}</div>
+    `;
+    row.addEventListener('mousemove', e => showTooltip(e, `${g.name}: ${g.count} tagů (${pct} % z celku)`));
+    row.addEventListener('mouseleave', hideTooltip);
+    row.addEventListener('click', () => {
+      selected = (selected === g.name) ? null : g.name;
+      renderChart();
+      renderDrilldown();
+    });
+    chart.appendChild(row);
+  });
+}
+
+function renderTable() {
+  const el = document.getElementById('table-view');
+  const rows = [];
+  DATA.group2_summary.forEach(g => {
+    (DATA.hierarchy[g.name] || []).forEach(g3 => {
+      rows.push({ g2: g.name, g3: g3.name, count: g3.count });
+    });
+  });
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Kategorie (group_2)</th><th>Podkategorie (group_3)</th><th style="text-align:right">Počet tagů</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr><td>${r.g2}</td><td>${r.g3}</td><td class="num">${r.count}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderDrilldown() {
+  const panel = document.getElementById('drilldown');
+  if (!selected) { panel.classList.remove('open'); return; }
+  panel.classList.add('open');
+  document.getElementById('drill-title').textContent = selected;
+  const g3list = DATA.hierarchy[selected] || [];
+  const total = g3list.reduce((s, g) => s + g.count, 0);
+  document.getElementById('drill-sub').textContent = `${g3list.length} podkategorií · ${total} tagů`;
+  const body = document.getElementById('drill-body');
+  body.innerHTML = g3list.map(g3 => `
+    <div class="g3-chip-group">
+      <p class="g3-title">${g3.name} <span class="g3-count">(${g3.count})</span></p>
+      <div class="chips">${g3.tags.map(t => `<span class="chip">${t}</span>`).join('')}</div>
+    </div>
+  `).join('') || '<p class="empty-hint">Žádná data</p>';
+}
+
+document.getElementById('btn-chart').addEventListener('click', () => {
+  document.getElementById('btn-chart').classList.add('active');
+  document.getElementById('btn-table').classList.remove('active');
+  document.getElementById('chart').style.display = '';
+  document.getElementById('table-view').style.display = 'none';
+});
+document.getElementById('btn-table').addEventListener('click', () => {
+  document.getElementById('btn-table').classList.add('active');
+  document.getElementById('btn-chart').classList.remove('active');
+  document.getElementById('chart').style.display = 'none';
+  document.getElementById('table-view').style.display = '';
+});
+
+/* ---------- sentiment (tab 2) ---------- */
+function renderSentStats() {
+  const el = document.getElementById('sent-stats');
+  const months = monthsInGlobalRange();
+  const filteredMonths = trueMonthStats().filter(m => months.includes(m.month));
+  const totalPos = filteredMonths.reduce((s, x) => s + x.positive, 0);
+  const totalAll = filteredMonths.reduce((s, x) => s + x.total, 0);
+  const posShare = totalAll ? Math.round((totalPos / totalAll) * 1000) / 10 : 0;
+  const activeAspects = SENT.aspect_summary.filter(a => sumMonthly(a.monthly, months).total > 0).length;
+  el.innerHTML = `
+    <div class="stat-tile"><p class="label">Zmínky celkem</p><p class="value">${totalAll.toLocaleString('cs-CZ')}</p></div>
+    <div class="stat-tile"><p class="label">Sledované aspekty</p><p class="value">${activeAspects}</p></div>
+    <div class="stat-tile"><p class="label">Podíl pozitivního sentimentu</p><p class="value">${posShare}%</p></div>
+  `;
+}
+
+let sentSortMode = 'negative'; // 'negative' | 'positive' | 'total'
+const SENT_SORT_LABEL = { negative: 'počtu negativních zmínek', positive: 'počtu pozitivních zmínek', total: 'objemu zmínek' };
+
+function renderSentimentChart() {
+  const months = monthsInGlobalRange();
+  const recomputed = SENT.aspect_summary
+    .map(a => ({ label: a.label, key: a.aspect, ...sumMonthly(a.monthly, months) }))
+    .filter(a => a.total > 0)
+    .sort((a, b) => b[sentSortMode] - a[sentSortMode]);
+  document.getElementById('sentiment-sort-sub').textContent =
+    `${recomputed.length} aspektů seřazeno podle ${SENT_SORT_LABEL[sentSortMode]} (absolutní počty) · klikni „Zobrazit vše" pro kompletní seznam`;
+  const list = sentExpanded ? recomputed : recomputed.slice(0, 20);
+  const segOrder = sentSortMode === 'positive' ? ['positive', 'negative', 'neutral'] : ['negative', 'positive', 'neutral'];
+  renderAbsStackedBar('sentiment-chart', list, segOrder, 'aspects');
+  document.getElementById('btn-show-more').textContent = sentExpanded
+    ? 'Zobrazit méně'
+    : `Zobrazit vše (${recomputed.length})`;
+}
+document.getElementById('btn-show-more').addEventListener('click', () => {
+  sentExpanded = !sentExpanded;
+  renderSentimentChart();
+});
+[['btn-sort-negative', 'negative'], ['btn-sort-positive', 'positive'], ['btn-sort-total', 'total']].forEach(([id, mode]) => {
+  document.getElementById(id).addEventListener('click', () => {
+    sentSortMode = mode;
+    document.querySelectorAll('#btn-sort-negative, #btn-sort-positive, #btn-sort-total').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    renderSentimentChart();
+  });
+});
+
+/* ---------- trend (tab 3) ---------- */
+let trendSelectedCategories = new Set(); // empty = all categories
+
+function computeTrendDailyData() {
+  const map = {};
+  dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to).forEach(d => { map[d] = { positive: 0, neutral: 0, negative: 0 }; });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    const day = m.date.slice(0, 10);
+    if (!(day in map)) return;
+    if (trendSelectedCategories.size && !m.categories.some(c => trendSelectedCategories.has(c))) return;
+    map[day][m.sentiment] += 1;
+  });
+  return map;
+}
+
+function initTrendCategoryFilters() {
+  const el = document.getElementById('trend-cat-filters');
+  const categories = DATA.group2_summary.map(g => g.name);
+  el.innerHTML = `<button class="cat-filter-pill active" data-cat="">Vše</button>` +
+    categories.map(c => `<button class="cat-filter-pill" data-cat="${c}">${c}</button>`).join('');
+  el.querySelectorAll('.cat-filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat;
+      if (!cat) {
+        trendSelectedCategories.clear();
+      } else if (trendSelectedCategories.has(cat)) {
+        trendSelectedCategories.delete(cat);
+      } else {
+        trendSelectedCategories.add(cat);
+      }
+      el.querySelectorAll('.cat-filter-pill').forEach(b => b.classList.toggle('active',
+        b.dataset.cat === '' ? trendSelectedCategories.size === 0 : trendSelectedCategories.has(b.dataset.cat)));
+      renderTrend();
+    });
+  });
+}
+
+function renderTrend() {
+  const catNote = trendSelectedCategories.size ? ` · kategorie: ${[...trendSelectedCategories].join(', ')}` : '';
+  document.getElementById('trend-sub').textContent =
+    `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · denní vývoj sentimentu${catNote} · klikni na bod v grafu pro detail dne`;
+  renderDailyLineChart('trend-chart', 'tr', 340, (s, sentiment) => showTrendDayDetail(s.day, sentiment), computeTrendDailyData());
+  const panel = document.getElementById('trend-day-panel');
+  if (panel.style.display !== 'none') panel.style.display = 'none';
+}
+
+function showTrendDayDetail(day, sentimentFilter) {
+  let dayMentions = MENTIONS.mentions.filter(m => m.date.slice(0, 10) === day);
+  if (VERIFIED_ONLY) dayMentions = dayMentions.filter(m => m.verified);
+  if (trendSelectedCategories.size) {
+    dayMentions = dayMentions.filter(m => m.categories.some(c => trendSelectedCategories.has(c)));
+  }
+  if (sentimentFilter) {
+    dayMentions = dayMentions.filter(m => m.sentiment === sentimentFilter);
+  }
+  const panel = document.getElementById('trend-day-panel');
+  panel.style.display = '';
+  document.getElementById('trend-day-title').textContent = day;
+  document.getElementById('trend-day-sub').textContent = sentimentFilter
+    ? `${dayMentions.length} ${SENTIMENT_LABEL_SHORT_CZ[sentimentFilter].toLowerCase()} zmínek tento den`
+    : `${dayMentions.length} zmínek tento den`;
+
+  const catCounts = {};
+  dayMentions.forEach(m => {
+    const cats = trendSelectedCategories.size ? m.categories.filter(c => trendSelectedCategories.has(c)) : m.categories;
+    cats.forEach(c => { catCounts[c] = (catCounts[c] || 0) + 1; });
+  });
+  const catList = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
+  document.getElementById('trend-day-categories').innerHTML = catList.length
+    ? catList.map(([c, n]) => `<span class="chip">${c} <span class="g3-count">(${n})</span></span>`).join('')
+    : `<span class="empty-hint">Žádné kategorie k zobrazení.</span>`;
+
+  const mentionsEl = document.getElementById('trend-day-mentions');
+  const shown = dayMentions.slice(0, 50);
+  mentionsEl.innerHTML = shown.length
+    ? shown.map(m => `
+        <div class="modal-quote">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <p class="modal-quote-date">${m.date.slice(11, 16)} · ${m.domain} · <span class="sentiment-badge ${m.sentiment}">${SENTIMENT_LABEL_SHORT_CZ[m.sentiment]}</span></p>
+            <a class="mention-link" href="${m.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>
+          </div>
+          <p class="modal-quote-text">"${m.text}"</p>
+        </div>`).join('')
+    : `<p class="empty">Pro tento den nejsou k dispozici žádné zmínky.</p>`;
+  if (dayMentions.length > shown.length) {
+    mentionsEl.insertAdjacentHTML('beforeend', `<p class="empty-hint" style="padding-top:8px;">Zobrazeno prvních ${shown.length} z ${dayMentions.length} zmínek.</p>`);
+  }
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ---------- issues (tab 4) ---------- */
+function renderIssues() {
+  const body = document.getElementById('issues-body');
+  body.innerHTML = '';
+  const months = monthsInGlobalRange();
+  const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
+  let filtered = SENT.issues.filter(issue => months.includes(issue.month.split('_').slice(0, 2).join('-')));
+  if (VERIFIED_ONLY) filtered = filtered.filter(issue => issue.v_mention_count > 0);
+  filtered = filtered.slice().sort((a, b) => b[countField] - a[countField]);
+  document.getElementById('issues-sub').textContent =
+    `${filtered.length} shluků problémů/témat (z ${SENT.issues.length}) seřazených podle počtu zmínek · klikni na řádek pro detail a ukázky citací`;
+  filtered.forEach((issue, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'issue-row';
+    tr.innerHTML = `
+      <td><span class="rank-badge">${i + 1}</span></td>
+      <td>${issue.aspect_label}</td>
+      <td>${issue.label}</td>
+      <td>${issue.month}</td>
+      <td class="num">${issue[countField]}</td>
+    `;
+    const detailTr = document.createElement('tr');
+    const detailTd = document.createElement('td');
+    detailTd.colSpan = 5;
+    detailTd.style.padding = '0';
+    const detail = document.createElement('div');
+    detail.className = 'issue-detail';
+    detail.innerHTML = `
+      <p class="summary">${issue.summary}</p>
+      ${issue.examples.map(q => `<p class="quote">"${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
+    `;
+    detailTd.appendChild(detail);
+    detailTr.appendChild(detailTd);
+    tr.addEventListener('click', () => detail.classList.toggle('open'));
+    body.appendChild(tr);
+    body.appendChild(detailTr);
+  });
+}
+
+/* ---------- issues trend (tab 5) ---------- */
+let ISSUES_TREND = null;
+let selectedIssueKey = null;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function dateRange(startStr, endStr) {
+  const start = new Date(startStr + 'T00:00:00Z');
+  const end = new Date(endStr + 'T00:00:00Z');
+  const days = [];
+  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) {
+    days.push(new Date(t).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+function renderMiniLineChart(values, months) {
+  const w = 64, h = 34, pad = 4;
+  const max = Math.max(1, ...values);
+  const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+  const dotColors = ['var(--seq-100)', 'var(--series-1)', 'var(--seq-700)'];
+  const points = values.map((v, i) => ({
+    x: pad + step * i,
+    y: h - pad - (v / max) * (h - pad * 2),
+    v, m: months[i],
+  }));
+  const line = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const dots = points.map((p, i) =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.6" fill="${dotColors[i] || 'var(--series-1)'}"><title>${p.m}: ${p.v}</title></circle>`
+  ).join('');
+  return `<svg class="mini-linechart" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${line}" fill="none" stroke="var(--series-1)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
+}
+
+function renderIssuesTrendList() {
+  const el = document.getElementById('issues-trend-list');
+  el.innerHTML = '';
+  const months = monthsInGlobalRange();
+  const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
+  const withTotals = ISSUES_TREND.top_issues.map(issue => ({
+    issue,
+    filteredTotal: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0)
+  })).filter(x => x.filteredTotal > 0).sort((a, b) => b.filteredTotal - a.filteredTotal);
+  withTotals.forEach(({ issue, filteredTotal }) => {
+    const key = issue.aspect + '::' + issue.cluster;
+    const row = document.createElement('div');
+    row.className = 'trend-issue-row' + (selectedIssueKey === key ? ' selected' : '');
+    const bars = renderMiniLineChart(months.map(m => issue[monthsKey][m] || 0), months);
+    row.innerHTML = `
+      <div class="trend-issue-label">${issue.label}<span class="aspect-tag">${issue.aspect_label}</span></div>
+      <div class="mini-bars">${bars}</div>
+      <div class="trend-issue-total">${filteredTotal}</div>
+    `;
+    row.addEventListener('mousemove', e => showTooltip(e,
+      `${issue.label} — ` + months.map(m => `${m}: ${issue[monthsKey][m] || 0}`).join(' · ')));
+    row.addEventListener('mouseleave', hideTooltip);
+    row.addEventListener('click', () => {
+      selectedIssueKey = (selectedIssueKey === key) ? null : key;
+      renderIssuesTrendList();
+      renderIssuesDaily();
+    });
+    el.appendChild(row);
+  });
+}
+
+function renderSingleLineChart(containerId, idPrefix, H, series, color) {
+  const W = 1000, padL = 34, padB = 18, padT = 6;
+  const maxV = Math.max(1, ...series.map(s => s.v));
+  const x = i => padL + (i / Math.max(1, series.length - 1)) * (W - padL - 8);
+  const y = v => padT + (1 - v / maxV) * (H - padT - padB);
+  const path = series.map((s, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(s.v).toFixed(1)}`).join(' ');
+  const gridLines = Array.from({length: 4}, (_, i) => {
+    const v = Math.round((maxV / 3) * i);
+    const yy = y(v);
+    return `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${W - 4}" y2="${yy}"/><text class="axis-label" x="2" y="${yy + 3}">${v}</text>`;
+  }).join('');
+  const monthTicks = ['2026-05-01', '2026-06-01', '2026-07-01']
+    .map(d => ({ d, i: series.findIndex(s => s.day === d) }))
+    .filter(t => t.i >= 0)
+    .map(t => `<text class="axis-label" x="${x(t.i)}" y="${H - 2}">${t.d.slice(0,7)}</text>`)
+    .join('');
+  const svg = `
+    <svg class="line-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="${idPrefix}-line-svg" style="height:${H}px;">
+      ${gridLines}
+      <path class="line-path" d="${path}" stroke="${color}"/>
+      ${monthTicks}
+      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent"/>
+      <circle class="line-hover-dot" id="${idPrefix}-hover-dot" fill="${color}" style="display:none"/>
+    </svg>`;
+  const container = document.getElementById(containerId);
+  container.innerHTML = svg;
+  const target = document.getElementById(`${idPrefix}-line-hover-target`);
+  const dot = document.getElementById(`${idPrefix}-hover-dot`);
+  const dayIndexFromEvent = e => {
+    const svgEl = document.getElementById(`${idPrefix}-line-svg`);
+    const rect = svgEl.getBoundingClientRect();
+    const relX = ((e.clientX - rect.left) / rect.width) * W;
+    const i = Math.round(((relX - padL) / (W - padL - 8)) * (series.length - 1));
+    return Math.max(0, Math.min(series.length - 1, i));
+  };
+  target.addEventListener('mousemove', e => {
+    const i = dayIndexFromEvent(e);
+    const s = series[i];
+    dot.style.display = '';
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(s.v));
+    showTooltip(e, `${s.day}: ${s.v} zmínek`);
+  });
+  target.addEventListener('mouseleave', () => {
+    dot.style.display = 'none';
+    hideTooltip();
+  });
+}
+
+function renderIssuesDaily() {
+  const panel = document.getElementById('issues-daily-panel');
+  if (!selectedIssueKey) { panel.style.display = 'none'; return; }
+  const issue = ISSUES_TREND.top_issues.find(i => (i.aspect + '::' + i.cluster) === selectedIssueKey);
+  if (!issue) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  document.getElementById('issues-daily-title').textContent = issue.label;
+  const dailyKey = VERIFIED_ONLY ? 'v_daily' : 'daily';
+  const days = dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to);
+  const rangeTotal = days.reduce((s, d) => s + (issue[dailyKey][d] || 0), 0);
+  document.getElementById('issues-daily-sub').textContent =
+    `${issue.aspect_label} · ${rangeTotal} zmínek ve zvoleném období · denní vývoj ${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
+
+  const series = days.map(d => ({ day: d, v: issue[dailyKey][d] || 0 }));
+  renderSingleLineChart('issues-daily-chart', 'issd', 170, series, 'var(--accent-warm)');
+}
+
+/* ---------- sources (tab 6) ---------- */
+let SOURCES = null;
+function renderMiniSparkline(values, months, max) {
+  const w = 60, h = 28, pad = 4;
+  const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+  const points = values.map((v, i) => ({
+    x: pad + step * i,
+    y: h - pad - (max ? (v / max) * (h - pad * 2) : 0),
+    v, m: months[i],
+  }));
+  const line = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const dots = points.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.2" fill="var(--accent-warm)"><title>${p.m}: ${p.v}</title></circle>`
+  ).join('');
+  return `<svg class="mini-sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <polyline points="${line}" fill="none" stroke="var(--accent-warm)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
+}
+
+function renderSources() {
+  const body = document.getElementById('sources-body');
+  body.innerHTML = '';
+  const months = monthsInGlobalRange();
+  const recomputed = SOURCES.sources
+    .map(s => ({ source: s.source, monthly: s.monthly, ...sumMonthly(s.monthly, months) }))
+    .sort((a, b) => b.total - a.total);
+  const grandTotal = recomputed.reduce((sum, s) => sum + s.total, 0);
+  const maxMonthly = Math.max(1, ...recomputed.flatMap(s => months.map(m => (s.monthly[m] || {}).total || 0)));
+  document.getElementById('sources-sub').textContent =
+    `Top ${SOURCES.sources.length - 1} domén z celkem ${SOURCES.total_domains} · zbytek sloučen do „Ostatní“`;
+  recomputed.forEach(s => {
+    const total = s.total;
+    const posPct = total ? (s.positive / total) * 100 : 0;
+    const neuPct = total ? (s.neutral / total) * 100 : 0;
+    const negPct = total ? (s.negative / total) * 100 : 0;
+    const sharePct = grandTotal ? (total / grandTotal) * 100 : 0;
+    const bars = renderMiniSparkline(months.map(m => (s.monthly[m] || {}).total || 0), months, maxMonthly);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="source-cell">${s.source}</div></td>
+      <td class="num">${total.toLocaleString('cs-CZ')}</td>
+      <td class="num">${sharePct.toFixed(1)}&nbsp;%</td>
+      <td><div class="source-monthly-bars">${bars}</div></td>
+      <td>
+        <div class="source-sentiment-bar">
+          <div class="sent-seg neg" style="width:${negPct.toFixed(1)}%"></div>
+          <div class="sent-seg neu" style="width:${neuPct.toFixed(1)}%"></div>
+          <div class="sent-seg pos" style="width:${posPct.toFixed(1)}%"></div>
+        </div>
+      </td>
+    `;
+    tr.addEventListener('mousemove', e => showTooltip(e,
+      `${s.source} — pozitivní ${Math.round(posPct)}% · neutrální ${Math.round(neuPct)}% · negativní ${Math.round(negPct)}%`));
+    tr.addEventListener('mouseleave', hideTooltip);
+    body.appendChild(tr);
+  });
+}
+
+/* ---------- overview tab ---------- */
+let DAILY = null;
+const MONTH_NAMES_CZ = { '2026-05': 'Květen 2026', '2026-06': 'Červen 2026', '2026-07': 'Červenec 2026' };
+
+function fitAbsBarNumbers(root) {
+  // segments in a tab that isn't the active one render at width 0 (display:none ancestor),
+  // so re-run this once the tab is actually visible, or every number gets hidden wrongly.
+  root.querySelectorAll('.abs-bar-seg').forEach(seg => {
+    const num = seg.querySelector('.abs-bar-num');
+    if (!num) return;
+    num.style.display = '';
+    if (num.scrollWidth > seg.clientWidth - 6) num.style.display = 'none';
+  });
+}
+
+function renderAbsStackedBar(containerId, rows, order, exampleType) {
+  // rows: [{label, key, negative, positive, neutral, total}], order: e.g. ['negative','positive','neutral']
+  // exampleType: 'sources' | 'aspects' | null — looks up EXAMPLES[exampleType][row.key][sentiment] for hover detail
+  const el = document.getElementById(containerId);
+  const max = Math.max(1, ...rows.map(r => r.total));
+  const classFor = { negative: 'neg', positive: 'pos', neutral: 'neu' };
+  el.innerHTML = rows.map((r, i) => {
+    const segs = order.map(key => {
+      const v = r[key];
+      if (!v) return '';
+      const pct = (v / max) * 100;
+      return `<div class="abs-bar-seg ${classFor[key]}" data-row="${i}" data-sentiment="${key}" style="width:${pct}%"><span class="abs-bar-num">${v.toLocaleString('cs-CZ')}</span></div>`;
+    }).join('');
+    return `
+      <div class="abs-bar-row">
+        <div class="abs-bar-label">${r.label}</div>
+        <div class="abs-bar-track">${segs}</div>
+        <div class="abs-bar-total">${r.total.toLocaleString('cs-CZ')}</div>
+      </div>`;
+  }).join('');
+  // only keep the number label where it actually fits the rendered segment width
+  fitAbsBarNumbers(el);
+  el.querySelectorAll('.abs-bar-seg').forEach(seg => {
+    const r = rows[Number(seg.dataset.row)];
+    const sentiment = seg.dataset.sentiment;
+    const count = r[sentiment];
+    const examples = filterExamplesByRange((exampleType && EXAMPLES && EXAMPLES[exampleType][r.key] && EXAMPLES[exampleType][r.key][sentiment]) || []);
+    const title = `${r.label} — ${SENTIMENT_LABEL_CZ[sentiment]} (${count.toLocaleString('cs-CZ')})`;
+    seg.addEventListener('mouseenter', e => {
+      if (exampleType) {
+        showDetailPopover(e, title, examples);
+      } else {
+        showTooltip(e, title);
+      }
+    });
+    seg.addEventListener('mousemove', e => exampleType ? positionDetailPopover(e) : showTooltip(e, title));
+    seg.addEventListener('mouseleave', () => { hideDetailPopover(); hideTooltip(); });
+    if (exampleType) {
+      seg.addEventListener('click', () => {
+        hideDetailPopover();
+        hideTooltip();
+        openDetailModal(title, examples);
+      });
+    }
+  });
+  // axis ticks
+  const ticks = 4;
+  const axisHtml = Array.from({length: ticks + 1}, (_, i) => {
+    const v = Math.round((max / ticks) * i);
+    const pct = (i / ticks) * 100;
+    return `<span style="left:${pct}%">${v.toLocaleString('cs-CZ')}</span>`;
+  }).join('');
+  el.insertAdjacentHTML('beforeend', `<div class="abs-bar-axis"><div></div><div class="abs-bar-axis-ticks">${axisHtml}</div><div></div></div>`);
+}
+
+function pctDelta(curr, prev) {
+  if (!prev) return null;
+  return ((curr - prev) / prev) * 100;
+}
+function compareDeltaHtml(curr, prev, goodDirection) {
+  const d = pctDelta(curr, prev);
+  if (d === null) return '';
+  const dir = d >= 0 ? 'up' : 'down';
+  let quality = '';
+  if (goodDirection === 'up') quality = dir === 'up' ? 'good' : 'bad';
+  else if (goodDirection === 'down') quality = dir === 'up' ? 'bad' : 'good';
+  const arrow = dir === 'up' ? '▲' : '▼';
+  return `<span class="compare-delta ${dir} ${quality}">${arrow} ${Math.abs(d).toFixed(1)}%</span>`;
+}
+
+function renderOverviewCompare() {
+  const monthsInRange = trueMonthStats().filter(m => monthsInGlobalRange().includes(m.month));
+  const byMonthKey = {};
+  trueMonthStats().forEach(m => { byMonthKey[m.month] = m; });
+
+  document.getElementById('ov-quarter-sub').textContent = monthsInRange.length
+    ? `${MONTH_NAMES_CZ[monthsInRange[0].month] || monthsInRange[0].month} – ${MONTH_NAMES_CZ[monthsInRange[monthsInRange.length - 1].month] || monthsInRange[monthsInRange.length - 1].month} · meziměsíční změna`
+    : '—';
+
+  const rowsHtml = monthsInRange.map(m => {
+    const prevKey = ALL_MONTHS[ALL_MONTHS.indexOf(m.month) - 1];
+    const prevM = prevKey ? byMonthKey[prevKey] : null;
+    const prevLabel = prevM ? `vs. ${MONTH_NAMES_CZ[prevM.month] || prevM.month}` : 'žádný předchozí měsíc v datech';
+    return `
+      <div class="quarter-card">
+        <p class="month-name">${MONTH_NAMES_CZ[m.month] || m.month}</p>
+        <p class="vs-label">${prevLabel}</p>
+        <div class="quarter-metric">
+          <p class="label">Zmínky</p>
+          <p class="value">${m.total.toLocaleString('cs-CZ')}</p>
+        </div>
+        <div class="quarter-metric">
+          <p class="label">Pozitivní</p>
+          <p class="value pos">${m.positive.toLocaleString('cs-CZ')}</p>
+        </div>
+        <div class="quarter-metric">
+          <p class="label">Odchylka oproti předchozímu měsíci</p>
+          <p class="value delta">${prevM ? compareDeltaHtml(m.positive, prevM.positive, 'up') : '—'}</p>
+        </div>
+        <div class="quarter-metric">
+          <p class="label">Negativní</p>
+          <p class="value neg">${m.negative.toLocaleString('cs-CZ')}</p>
+        </div>
+        <div class="quarter-metric">
+          <p class="label">Negativní odchylka</p>
+          <p class="value delta">${prevM ? compareDeltaHtml(m.negative, prevM.negative, 'down') : '—'}</p>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('ov-quarter-rows').innerHTML = rowsHtml || `<p class="empty-hint">Žádná data pro zvolené období.</p>`;
+
+  const cur = monthsInRange[monthsInRange.length - 1] || { total: 0, positive: 0, negative: 0 };
+  const prev = monthsInRange[monthsInRange.length - 2] || { total: 0, positive: 0, negative: 0 };
+  return { cur, prev };
+}
+
+function renderOverviewSources() {
+  const months = monthsInGlobalRange();
+  const rows = SOURCES.sources
+    .filter(s => s.source !== 'Ostatní')
+    .map(s => ({ label: s.source, key: s.source, ...sumMonthly(s.monthly, months) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+  renderAbsStackedBar('ov-sources-bar', rows, ['negative', 'positive', 'neutral'], 'sources');
+}
+
+function renderOverviewCategories() {
+  const months = monthsInGlobalRange();
+  const rows = SENT.aspect_summary
+    .map(a => ({ label: a.label, key: a.aspect, ...sumMonthly(a.monthly, months) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
+  renderAbsStackedBar('ov-categories-bar', rows, ['negative', 'positive', 'neutral'], 'aspects');
+}
+
+function renderOverviewDonut() {
+  const months = monthsInGlobalRange();
+  const totals = trueMonthStats().filter(m => months.includes(m.month)).reduce((acc, m) => {
+    acc.positive += m.positive; acc.neutral += m.neutral; acc.negative += m.negative;
+    return acc;
+  }, { positive: 0, neutral: 0, negative: 0 });
+  const total = totals.positive + totals.neutral + totals.negative;
+  const safeTotal = Math.max(1, total);
+  const posPct = (totals.positive / safeTotal) * 100;
+  const neuPct = (totals.neutral / safeTotal) * 100;
+  const negPct = (totals.negative / safeTotal) * 100;
+  const posDeg = posPct * 3.6;
+  const neuDeg = neuPct * 3.6;
+  const gradient = `conic-gradient(var(--pos) 0deg ${posDeg}deg, var(--neutral-fill) ${posDeg}deg ${posDeg + neuDeg}deg, var(--neg) ${posDeg + neuDeg}deg 360deg)`;
+  const el = document.getElementById('ov-donut');
+  el.innerHTML = `
+    <div class="donut-wrap">
+      <div style="position:relative;">
+        <div class="donut" style="background:${gradient}"></div>
+        <div class="donut-total">${total.toLocaleString('cs-CZ')}<span>zmínek</span></div>
+      </div>
+      <div class="donut-legend">
+        <div class="row"><span class="swatch" style="background:var(--pos)"></span>Pozitivní <b>${posPct.toFixed(1)}%</b></div>
+        <div class="row"><span class="swatch" style="background:var(--neutral-fill)"></span>Neutrální <b>${neuPct.toFixed(1)}%</b></div>
+        <div class="row"><span class="swatch" style="background:var(--neg)"></span>Negativní <b>${negPct.toFixed(1)}%</b></div>
+      </div>
+    </div>`;
+}
+
+function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, range) {
+  const source = dailyData || trueDailyStats();
+  const r = range || GLOBAL_RANGE;
+  const days = dateRange(r.from, r.to);
+  const series = days.map(d => {
+    const v = source[d] || { positive: 0, neutral: 0, negative: 0 };
+    return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
+  });
+  const W = 1000, padL = 34, padB = 18, padT = 6;
+  const maxV = Math.max(1, ...series.map(s => Math.max(s.total, s.positive, s.negative)));
+  const x = i => padL + (i / Math.max(1, series.length - 1)) * (W - padL - 8);
+  const y = v => padT + (1 - v / maxV) * (H - padT - padB);
+  const pathFor = key => series.map((s, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(s[key]).toFixed(1)}`).join(' ');
+  const gridLines = Array.from({length: 4}, (_, i) => {
+    const v = Math.round((maxV / 3) * i);
+    const yy = y(v);
+    return `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${W - 4}" y2="${yy}"/><text class="axis-label" x="2" y="${yy + 3}">${v}</text>`;
+  }).join('');
+  const monthTicks = ['2026-05-01', '2026-06-01', '2026-07-01']
+    .map(d => ({ d, i: series.findIndex(s => s.day === d) }))
+    .filter(t => t.i >= 0)
+    .map(t => `<text class="axis-label" x="${x(t.i)}" y="${H - 2}">${t.d.slice(0,7)}</text>`)
+    .join('');
+  const svg = `
+    <svg class="line-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="${idPrefix}-line-svg" style="height:${H}px;">
+      ${gridLines}
+      <path class="line-path total" d="${pathFor('total')}"/>
+      <path class="line-path pos" d="${pathFor('positive')}"/>
+      <path class="line-path neg" d="${pathFor('negative')}"/>
+      <path class="line-path neutral" d="${pathFor('neutral')}"/>
+      ${monthTicks}
+      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
+      <circle class="line-hover-dot" id="${idPrefix}-hover-total" fill="var(--accent-warm)" style="display:none"/>
+      <circle class="line-hover-dot" id="${idPrefix}-hover-pos" fill="var(--pos)" style="display:none"/>
+      <circle class="line-hover-dot" id="${idPrefix}-hover-neg" fill="var(--neg)" style="display:none"/>
+      <circle class="line-hover-dot" id="${idPrefix}-hover-neutral" fill="var(--neutral-fill)" style="display:none"/>
+    </svg>
+    <div class="legend" style="margin-top:8px;margin-bottom:0;">
+      <span><span class="swatch" style="background:var(--accent-warm)"></span>celkem</span>
+      <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+      <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+      <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+    </div>`;
+  const container = document.getElementById(containerId);
+  container.innerHTML = svg;
+  const target = document.getElementById(`${idPrefix}-line-hover-target`);
+  const dotTotal = document.getElementById(`${idPrefix}-hover-total`);
+  const dotPos = document.getElementById(`${idPrefix}-hover-pos`);
+  const dotNeg = document.getElementById(`${idPrefix}-hover-neg`);
+  const dotNeutral = document.getElementById(`${idPrefix}-hover-neutral`);
+  const dayIndexFromEvent = e => {
+    const svgEl = document.getElementById(`${idPrefix}-line-svg`);
+    const rect = svgEl.getBoundingClientRect();
+    const relX = ((e.clientX - rect.left) / rect.width) * W;
+    let i = Math.round(((relX - padL) / (W - padL - 8)) * (series.length - 1));
+    return Math.max(0, Math.min(series.length - 1, i));
+  };
+  const dotByKey = { total: dotTotal, positive: dotPos, negative: dotNeg, neutral: dotNeutral };
+  const closestSeriesKey = (e, s) => {
+    const svgEl = document.getElementById(`${idPrefix}-line-svg`);
+    const rect = svgEl.getBoundingClientRect();
+    const relY = ((e.clientY - rect.top) / rect.height) * H;
+    const distances = {
+      positive: Math.abs(relY - y(s.positive)),
+      negative: Math.abs(relY - y(s.negative)),
+      neutral: Math.abs(relY - y(s.neutral)),
+      total: Math.abs(relY - y(s.total))
+    };
+    return Object.entries(distances).sort((a, b) => a[1] - b[1])[0][0];
+  };
+  const SENT_WORD = { total: 'celkem', positive: 'pozitivní', negative: 'negativní', neutral: 'neutrální' };
+  target.addEventListener('mousemove', e => {
+    const i = dayIndexFromEvent(e);
+    const s = series[i];
+    const key = closestSeriesKey(e, s);
+    [dotTotal, dotPos, dotNeg, dotNeutral].forEach(d => d.style.display = 'none');
+    const dot = dotByKey[key];
+    dot.style.display = '';
+    dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(s[key]));
+    showTooltip(e, `${s.day} — ${SENT_WORD[key]}: ${s[key]}`);
+  });
+  target.addEventListener('mouseleave', () => {
+    [dotTotal, dotPos, dotNeg, dotNeutral].forEach(d => d.style.display = 'none');
+    hideTooltip();
+  });
+  if (onDayClick) {
+    target.addEventListener('click', e => {
+      const i = dayIndexFromEvent(e);
+      const s = series[i];
+      const closest = closestSeriesKey(e, s);
+      onDayClick(s, closest === 'total' ? null : closest);
+    });
+  }
+}
+
+function renderOverviewLineChart() {
+  document.getElementById('ov-line-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
+  renderDailyLineChart('ov-line-chart', 'ov', 170);
+}
+
+function describeGaugeArc(cx, cy, r, valueFrom, valueTo) {
+  // The gauge only ever spans a 180° semicircle (value 0..1), so the arc between
+  // any two points on it is never more than 180° — always the "minor" arc.
+  const angle = v => (180 - v * 180) * (Math.PI / 180);
+  const pt = v => ({ x: cx + r * Math.cos(angle(v)), y: cy - r * Math.sin(angle(v)) });
+  const p1 = pt(valueFrom), p2 = pt(valueTo);
+  return `M ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} A ${r} ${r} 0 0 1 ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+}
+
+function renderOverviewGauge(cur, prev) {
+  const curVal = cur.total ? cur.negative / cur.total : 0;
+  const prevVal = prev.total ? prev.negative / prev.total : 0;
+  const cx = 110, cy = 100, r = 82;
+  const bg = describeGaugeArc(cx, cy, r, 0, 1);
+  const fg = describeGaugeArc(cx, cy, r, 0, curVal);
+  const svg = `
+    <svg class="gauge-svg" viewBox="0 0 220 120">
+      <path d="${bg}" stroke="var(--gridline)" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <path d="${fg}" stroke="var(--neg)" stroke-width="16" fill="none" stroke-linecap="round"/>
+      <text class="gauge-value-label" x="${cx}" y="${cy - 6}" text-anchor="middle">${curVal.toFixed(2)}</text>
+      <text class="gauge-scale-label" x="${cx - r}" y="${cy + 16}" text-anchor="middle">0,00</text>
+      <text class="gauge-scale-label" x="${cx + r}" y="${cy + 16}" text-anchor="middle">1,00</text>
+    </svg>`;
+  document.getElementById('ov-gauge').innerHTML = `
+    <div class="gauge-wrap">
+      ${svg}
+      <div class="gauge-prev">Předchozí měsíc: <b>${prevVal.toFixed(2)}</b></div>
+    </div>`;
+}
+
+/* ---------- pain-point index tab (mini gauges per aspect, grouped by category) ---------- */
+function colorForPainPointValue(v) {
+  if (v === null) return 'var(--baseline)';
+  if (v < 0.4) return 'var(--neg)';
+  if (v < 0.7) return 'var(--accent-warm)';
+  return 'var(--pos)';
+}
+
+function painPointValue(item) {
+  const denom = item.positive + item.negative;
+  return denom > 0 ? item.positive / denom : null;
+}
+
+// red (0) → orange (1) → green (2) → no data (3); ties broken by higher volume first
+function sortByPainPointSeverity(items) {
+  const band = v => v === null ? 3 : v < 0.4 ? 0 : v < 0.7 ? 1 : 2;
+  return items.slice().sort((a, b) => {
+    const diff = band(painPointValue(a)) - band(painPointValue(b));
+    return diff !== 0 ? diff : b.total - a.total;
+  });
+}
+
+function renderMiniGauge(aspect) {
+  const value = painPointValue(aspect);
+  const cx = 78, cy = 70, r = 54;
+  const bg = describeGaugeArc(cx, cy, r, 0, 1);
+  const fg = describeGaugeArc(cx, cy, r, 0, value === null ? 0 : value);
+  const color = colorForPainPointValue(value);
+  const label = value === null ? '–' : value.toFixed(2).replace('.', ',');
+  return `
+    <div class="mini-gauge-card">
+      <p class="mini-gauge-title">${aspect.label}</p>
+      <svg viewBox="0 0 156 96" width="156" height="96">
+        <path d="${bg}" stroke="var(--gridline)" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <path d="${fg}" stroke="${color}" stroke-width="12" fill="none" stroke-linecap="round"/>
+        <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="21" font-weight="700" fill="var(--text-primary)">${label}</text>
+        <text x="${cx - r}" y="${cy + 16}" text-anchor="middle" font-size="8" fill="var(--text-muted)">0,00</text>
+        <text x="${cx + r}" y="${cy + 16}" text-anchor="middle" font-size="8" fill="var(--text-muted)">1,00</text>
+      </svg>
+      <div class="mini-gauge-stats">
+        <div class="mini-gauge-stat"><b>${aspect.total}</b><span>Total</span></div>
+        <div class="mini-gauge-stat"><b>${aspect.positive}</b><span>Positive</span></div>
+        <div class="mini-gauge-stat"><b>${aspect.negative}</b><span>Negative</span></div>
+      </div>
+    </div>`;
+}
+
+function renderPainPointByCategory() {
+  const months = monthsInGlobalRange();
+  const byCategory = {};
+  SENT.aspect_summary.forEach(a => {
+    const m = sumMonthly(a.monthly, months);
+    const c = byCategory[a.category] = byCategory[a.category] || { label: a.category, positive: 0, neutral: 0, negative: 0, total: 0 };
+    c.positive += m.positive; c.neutral += m.neutral; c.negative += m.negative; c.total += m.total;
+  });
+  const ordered = sortByPainPointSeverity(Object.values(byCategory));
+  const grid = document.getElementById('painpoint-cat-grid');
+  grid.innerHTML = ordered.map(renderMiniGauge).join('');
+  grid.querySelectorAll('.mini-gauge-card').forEach((card, i) => {
+    card.addEventListener('click', () => openPainPointMentions(ordered[i], 'categories', ordered[i].label));
+  });
+}
+
+const ppTagsExpanded = new Set(); // categories currently showing all tags (not just red)
+
+function painPointBand(v) { return v === null ? 3 : v < 0.4 ? 0 : v < 0.7 ? 1 : 2; }
+
+function renderPainPointByTags() {
+  const months = monthsInGlobalRange();
+  const byCategory = {};
+  TAG_SENTIMENT.tags.forEach(t => {
+    const m = sumMonthly(t.monthly, months);
+    if (m.total === 0) return;
+    (byCategory[t.category] = byCategory[t.category] || []).push({ label: t.name, key: t.tag_key, ...m });
+  });
+  // order category panels themselves by their worst (most red-heavy) tags first
+  const categoryOrder = Object.keys(byCategory).sort((catA, catB) => {
+    const worst = cat => sortByPainPointSeverity(byCategory[cat])[0];
+    return painPointBand(painPointValue(worst(catA))) - painPointBand(painPointValue(worst(catB)));
+  });
+
+  const shownByCategory = {};
+  const grid = document.getElementById('painpoint-tags-grid');
+  grid.innerHTML = categoryOrder.map(cat => {
+    const allTags = sortByPainPointSeverity(byCategory[cat]);
+    const redTags = allTags.filter(t => painPointBand(painPointValue(t)) === 0);
+    const expanded = ppTagsExpanded.has(cat);
+    const shown = expanded ? allTags : redTags;
+    shownByCategory[cat] = shown;
+    const toggle = allTags.length > redTags.length
+      ? `<button class="pp-toggle-btn" data-cat="${cat}">${expanded ? 'Zobrazit jen červené' : `Zobrazit vše (${allTags.length})`}</button>`
+      : '';
+    const body = shown.length
+      ? `<div class="mini-gauge-grid">${shown.map(renderMiniGauge).join('')}</div>`
+      : `<p class="empty-hint">Žádné červené tagy v této kategorii.</p>`;
+    return `
+      <div class="painpoint-panel">
+        <h3>${cat} <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(${redTags.length} červených z ${allTags.length} tagů)</span></h3>
+        ${body}
+        ${toggle}
+      </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.painpoint-panel').forEach((panelEl, pi) => {
+    const cat = categoryOrder[pi];
+    const shown = shownByCategory[cat];
+    panelEl.querySelectorAll('.mini-gauge-card').forEach((card, ti) => {
+      card.addEventListener('click', () => openPainPointMentions(shown[ti], 'tags', shown[ti].key));
+    });
+    const toggleBtn = panelEl.querySelector('.pp-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        if (ppTagsExpanded.has(cat)) ppTagsExpanded.delete(cat); else ppTagsExpanded.add(cat);
+        renderPainPointByTags();
+      });
+    }
+  });
+}
+
+/* ---------- trending (month-over-month growth by aspect) ---------- */
+function computeSentimentTrendByCategory(field) {
+  const key = (VERIFIED_ONLY ? 'v_' : '') + field;
+  const [may, jun, jul] = ALL_MONTHS;
+  const byCategory = {};
+  SENT.aspect_summary.forEach(a => {
+    const mMay = (a.monthly[may] || { [key]: 0 })[key];
+    const mJun = (a.monthly[jun] || { [key]: 0 })[key];
+    const mJul = (a.monthly[jul] || { [key]: 0 })[key];
+    if (mMay < 10) return;
+    const delta = pctDelta(mJul, mMay);
+    if (delta === null || delta <= 0) return;
+    (byCategory[a.category] = byCategory[a.category] || []).push({ label: a.label, may: mMay, jun: mJun, jul: mJul, delta });
+  });
+  Object.values(byCategory).forEach(rows => rows.sort((a, b) => b.delta - a.delta));
+  return byCategory;
+}
+
+function growthDeltaHtml(curr, prev, goodDirection) {
+  const absDelta = curr - prev;
+  const dir = absDelta >= 0 ? 'up' : 'down';
+  let quality = '';
+  if (goodDirection === 'up') quality = dir === 'up' ? 'good' : 'bad';
+  else if (goodDirection === 'down') quality = dir === 'up' ? 'bad' : 'good';
+  const sign = absDelta > 0 ? '+' : '';
+  const mult = prev > 0 ? curr / prev : null;
+  const multText = mult !== null ? ` <span class="growth-mult">(${mult.toFixed(1)}×)</span>` : '';
+  return `<span class="compare-delta ${dir} ${quality}"><b>${sign}${absDelta.toLocaleString('cs-CZ')}</b> zmínek${multText}</span>`;
+}
+
+function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGoodDirection, emptyText) {
+  const [may, jun, jul] = ALL_MONTHS.map(m => MONTH_NAMES_CZ[m] || m);
+  document.getElementById(subId).textContent =
+    `Vývoj ${sentimentWord} zmínek podle aspektu, rozdělené po kategoriích · ${may} → ${jun} → ${jul} · jen aspekty s alespoň 10 zmínkami v květnu a rostoucí hodnotou`;
+
+  const byCategory = computeSentimentTrendByCategory(field);
+  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
+
+  document.getElementById(containerId).innerHTML = categoryOrder.map(cat => {
+    const rows = byCategory[cat];
+    const rowsHtml = rows.map(r => `
+      <tr>
+        <td>${r.label}</td>
+        <td class="num">${r.may}</td>
+        <td class="num">${r.jun}</td>
+        <td class="num">${r.jul}</td>
+        <td class="num">${growthDeltaHtml(r.jul, r.may, deltaGoodDirection)}</td>
+      </tr>`).join('');
+    return `
+      <div class="card">
+        <h2>${cat}</h2>
+        <p class="sub">${rows.length} aspektů s rostoucí ${sentimentWord === 'negativních' ? 'negativitou' : 'pozitivitou'}</p>
+        <table class="trending-table">
+          <thead>
+            <tr>
+              <th>Aspekt</th>
+              <th style="text-align:right;">${may}</th>
+              <th style="text-align:right;">${jun}</th>
+              <th style="text-align:right;">${jul}</th>
+              <th style="text-align:right;">Nárůst</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }).join('') || `<div class="card"><p class="empty-hint">${emptyText}</p></div>`;
+}
+
+function renderTrending() {
+  renderTrendingByField('negative', 'trending-sub', 'trending-transitions', 'negativních', 'down',
+    'Žádná kategorie nemá aspekty s rostoucí negativitou.');
+}
+function renderTrendingPositive() {
+  renderTrendingByField('positive', 'trending-pos-sub', 'trending-pos-transitions', 'pozitivních', 'up',
+    'Žádná kategorie nemá aspekty s rostoucí pozitivitou.');
+}
+
+/* ---------- shared color-level helper (used by the source × category matrix) ---------- */
+function lerpColor(hex1, hex2, t) {
+  const c1 = parseInt(hex1.slice(1), 16), c2 = parseInt(hex2.slice(1), 16);
+  const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+  const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+  const r = Math.round(r1 + (r2 - r1) * t), g = Math.round(g1 + (g2 - g1) * t), b = Math.round(b1 + (b2 - b1) * t);
+  return `rgb(${r},${g},${b})`;
+}
+// discrete quantile-based levels (GitHub-heatmap style) read much more clearly than
+// a smooth gradient, which flattens differences when most values cluster together.
+// Blue (not mint/green) — this matrix is pure volume, not sentiment, so it shouldn't
+// borrow the "positive" color and imply a value judgement that isn't there.
+const HEATMAP_LEVEL_COLORS = [0, 0.32, 0.58, 0.8, 1.0].map(t => lerpColor('#1c2a33', '#FFFFE0', t));
+function quantileThresholds(values) {
+  const nonZero = values.filter(v => v > 0).slice().sort((a, b) => a - b);
+  if (!nonZero.length) return [1, 1, 1];
+  const at = p => nonZero[Math.min(nonZero.length - 1, Math.floor(p * (nonZero.length - 1)))];
+  return [at(0.25), at(0.5), at(0.75)];
+}
+function colorForLevel(v, thresholds) {
+  if (!v) return HEATMAP_LEVEL_COLORS[0];
+  if (v <= thresholds[0]) return HEATMAP_LEVEL_COLORS[1];
+  if (v <= thresholds[1]) return HEATMAP_LEVEL_COLORS[2];
+  if (v <= thresholds[2]) return HEATMAP_LEVEL_COLORS[3];
+  return HEATMAP_LEVEL_COLORS[4];
+}
+
+/* ---------- source x category matrix ---------- */
+function renderSourceCategoryMatrix() {
+  const categories = DATA.group2_summary.map(g => g.name);
+  const sourceList = SOURCES.sources.map(s => s.source);
+  const matrix = {};
+  sourceList.forEach(s => { matrix[s] = {}; categories.forEach(c => { matrix[s][c] = 0; }); });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (!matrix[m.channel]) return;
+    const day = m.date.slice(0, 10);
+    if (day < GLOBAL_RANGE.from || day > GLOBAL_RANGE.to) return;
+    m.categories.forEach(c => { if (matrix[m.channel][c] !== undefined) matrix[m.channel][c]++; });
+  });
+  const thresholds = quantileThresholds(sourceList.flatMap(s => categories.map(c => matrix[s][c])));
+
+  const header = `<tr><th class="row-head">Zdroj</th>${categories.map(c => `<th>${c}</th>`).join('')}<th>Celkem</th></tr>`;
+  const rows = sourceList.map(s => {
+    const rowTotal = categories.reduce((sum, c) => sum + matrix[s][c], 0);
+    const cells = categories.map(c => {
+      const v = matrix[s][c];
+      if (!v) return `<td class="cell zero" data-source="${s}" data-category="${c}">0</td>`;
+      const color = colorForLevel(v, thresholds);
+      return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color}">${v}</td>`;
+    }).join('');
+    return `<tr><td class="row-head">${s}</td>${cells}<td class="total-cell">${rowTotal}</td></tr>`;
+  }).join('');
+
+  document.getElementById('matrix-table').innerHTML = `<table class="matrix-table"><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+
+  document.getElementById('matrix-table').querySelectorAll('td.cell').forEach(td => {
+    const src = td.dataset.source, cat = td.dataset.category;
+    const v = matrix[src][cat];
+    td.addEventListener('mousemove', e => showTooltip(e, `${src} × ${cat}: ${v} zmínek`));
+    td.addEventListener('mouseleave', hideTooltip);
+    if (v > 0) {
+      td.addEventListener('click', () => {
+        const examples = MENTIONS.mentions
+          .filter(m => m.channel === src && m.categories.includes(cat) && (!VERIFIED_ONLY || m.verified))
+          .slice(0, 50)
+          .map(m => ({ text: m.text, date: m.date.slice(0, 10), url: m.url }));
+        openDetailModal(`${src} × ${cat} (${v} zmínek)`, examples);
+      });
+    }
+  });
+}
+
+/* ---------- keywords ---------- */
+function showKeywordMentions(word) {
+  const examples = MENTIONS.mentions
+    .filter(m => m.text.toLowerCase().includes(word.toLowerCase()) && (!VERIFIED_ONLY || m.verified))
+    .slice(0, 50)
+    .map(m => ({ text: m.text, date: m.date.slice(0, 10), url: m.url }));
+  openDetailModal(`"${word}" — zmínky obsahující toto slovo`, examples);
+}
+
+function renderKeywords() {
+  const countKey = VERIFIED_ONLY ? 'v_count' : 'count';
+  const posKey = VERIFIED_ONLY ? 'v_positive' : 'positive';
+  const neuKey = VERIFIED_ONLY ? 'v_neutral' : 'neutral';
+  const negKey = VERIFIED_ONLY ? 'v_negative' : 'negative';
+  const words = KEYWORDS.words.filter(w => w[countKey] > 0).slice().sort((a, b) => b[countKey] - a[countKey]).slice(0, 30);
+  const max = Math.max(1, ...words.map(w => w[countKey]));
+  const el = document.getElementById('keywords-bar');
+  el.innerHTML = words.map(w => {
+    const total = w[countKey] || 1;
+    const negPct = (w[negKey] / total) * 100;
+    const posPct = (w[posKey] / total) * 100;
+    const neuPct = (w[neuKey] / total) * 100;
+    const barPct = (w[countKey] / max) * 100;
+    return `
+      <div class="keyword-row" data-word="${w.word}">
+        <span class="keyword-label">${w.word}</span>
+        <div class="abs-bar-track" style="width:${barPct}%;">
+          <div class="abs-bar-seg neg" style="width:${negPct}%"></div>
+          <div class="abs-bar-seg pos" style="width:${posPct}%"></div>
+          <div class="abs-bar-seg neu" style="width:${neuPct}%"></div>
+        </div>
+        <span class="keyword-count">${w[countKey]}</span>
+      </div>`;
+  }).join('') || `<p class="empty-hint">Žádná slova nesplňují zadaný filtr.</p>`;
+  el.querySelectorAll('.keyword-row').forEach(row => {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', () => showKeywordMentions(row.dataset.word));
+  });
+
+  const bigramCountKey = VERIFIED_ONLY ? 'v_count' : 'count';
+  const bigrams = KEYWORDS.bigrams.filter(b => b[bigramCountKey] > 0).slice().sort((a, b) => b[bigramCountKey] - a[bigramCountKey]);
+  document.getElementById('keywords-bigrams').innerHTML = bigrams.map(b =>
+    `<span class="chip bigram-chip" data-phrase="${b.phrase}">${b.phrase} <span class="g3-count">(${b[bigramCountKey]})</span></span>`
+  ).join('') || `<p class="empty-hint">Žádné fráze nesplňují zadaný filtr.</p>`;
+  document.getElementById('keywords-bigrams').querySelectorAll('.bigram-chip').forEach(chip => {
+    chip.addEventListener('click', () => showKeywordMentions(chip.dataset.phrase));
+  });
+}
+
+// loose mapping from data category to the business area it mostly maps to —
+// helps a reader who owns product/manufacturing/social decide who should look at it
+const CATEGORY_DOMAIN_CZ = {
+  'Chassis': 'výroba a kvalita',
+  'Braking system': 'výroba a kvalita',
+  'Transmission': 'výroba a kvalita',
+  'Engine': 'výroba a kvalita',
+  'eMobility': 'vývoj pohonu a baterie',
+  'Software': 'software a vývoj',
+  'Connectivity': 'software a vývoj',
+  'Electronics': 'software a vývoj',
+  'Interior': 'design a výroba',
+  'Exterior': 'design a výroba',
+  'Image': 'PR a sociální sítě',
+};
+
+function flattenTrend(byCat) {
+  return Object.entries(byCat).flatMap(([cat, rows]) => rows.map(r => ({ ...r, category: cat })));
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function renderExecutiveSummary() {
+  const months = trueMonthStats();
+  const cur = months[months.length - 1];
+  const prev = months[months.length - 2];
+  const totalDelta = pctDelta(cur.total, prev.total);
+  const posShare = cur.total ? Math.round((cur.positive / cur.total) * 1000) / 10 : 0;
+  const monthLabel = MONTH_NAMES_CZ[cur.month] || cur.month;
+  const deltaText = totalDelta === null ? ''
+    : totalDelta >= 0 ? ` (nárůst o ${totalDelta.toFixed(1)} % oproti předchozímu měsíci)`
+    : ` (pokles o ${Math.abs(totalDelta).toFixed(1)} % oproti předchozímu měsíci)`;
+
+  const topNeg = flattenTrend(computeSentimentTrendByCategory('negative')).sort((a, b) => b.delta - a.delta)[0];
+  const topPos = flattenTrend(computeSentimentTrendByCategory('positive')).sort((a, b) => b.delta - a.delta)[0];
+
+  let html = `<p>V měsíci <b>${monthLabel}</b> bylo zaznamenáno <b>${cur.total.toLocaleString('cs-CZ')}</b> zmínek o Tesla Model Y${deltaText}, z toho <b>${posShare} %</b> pozitivních.</p>`;
+
+  if (topNeg) {
+    const domain = CATEGORY_DOMAIN_CZ[topNeg.category] || topNeg.category;
+    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b> — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span></p>`;
+  }
+  if (topPos) {
+    const domain = CATEGORY_DOMAIN_CZ[topPos.category] || topPos.category;
+    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span></p>`;
+  }
+  if (!topNeg && !topPos) {
+    html += `<p>Žádný aspekt nemá dostatek dat pro spolehlivé srovnání trendu.</p>`;
+  }
+
+  document.getElementById('ov-exec-summary').innerHTML = html;
+}
+
+/* ---------- daily overview (day-to-day operations) ---------- */
+function topSourceForMentions(mentionsList) {
+  const counts = {};
+  mentionsList.forEach(m => { counts[m.domain] = (counts[m.domain] || 0) + 1; });
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return entries[0] ? { domain: entries[0][0], count: entries[0][1] } : null;
+}
+
+function computeDailyWatchlistBySentiment(lastDay, sentiment) {
+  const recentDays = new Set([addDays(lastDay, -2), addDays(lastDay, -1), lastDay]);
+  const prevDays = new Set([addDays(lastDay, -5), addDays(lastDay, -4), addDays(lastDay, -3)]);
+  const counts = {};
+  DATA.group2_summary.forEach(g => { counts[g.name] = { recent: 0, prev: 0 }; });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (m.sentiment !== sentiment) return;
+    const day = m.date.slice(0, 10);
+    const inRecent = recentDays.has(day);
+    const inPrev = prevDays.has(day);
+    if (!inRecent && !inPrev) return;
+    m.categories.forEach(c => {
+      if (!counts[c]) return;
+      if (inRecent) counts[c].recent += 1;
+      if (inPrev) counts[c].prev += 1;
+    });
+  });
+  return Object.entries(counts)
+    .map(([category, v]) => ({ category, ...v, delta: pctDelta(v.recent, v.prev) }))
+    .filter(x => x.prev >= 3 && x.delta !== null && x.delta > 0)
+    .sort((a, b) => b.delta - a.delta);
+}
+function computeDailyWatchlist(lastDay) { return computeDailyWatchlistBySentiment(lastDay, 'negative'); }
+
+function renderDailyWatchTable(containerId, items, goodDirection) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.length ? `
+    <table class="trending-table">
+      <thead><tr><th>Kategorie</th><th style="text-align:right;">Poslední 3 dny</th><th style="text-align:right;">Předchozí 3 dny</th><th style="text-align:right;">Změna</th></tr></thead>
+      <tbody>${items.map(i => `
+        <tr><td>${i.category}</td><td class="num">${i.recent}</td><td class="num">${i.prev}</td><td class="num">${compareDeltaHtml(i.recent, i.prev, goodDirection)}</td></tr>`).join('')}
+      </tbody>
+    </table>` : `<p class="empty-hint">Žádná kategorie nevykazuje neobvyklý nárůst za poslední dny.</p>`;
+}
+
+function renderDailyStats(series) {
+  const sum = arr => arr.reduce((acc, d) => { acc.total += d.total; acc.positive += d.positive; acc.negative += d.negative; return acc; }, { total: 0, positive: 0, negative: 0 });
+  const last7 = sum(series.slice(-7));
+  const prev7 = sum(series.slice(-14, -7));
+  const posShare = last7.total ? Math.round((last7.positive / last7.total) * 1000) / 10 : 0;
+  const negShare = last7.total ? Math.round((last7.negative / last7.total) * 1000) / 10 : 0;
+  const prevPosShare = prev7.total ? (prev7.positive / prev7.total) * 100 : 0;
+  const prevNegShare = prev7.total ? (prev7.negative / prev7.total) * 100 : 0;
+
+  const last7Days = new Set(series.slice(-7).map(d => d.day));
+  const last7Mentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && last7Days.has(m.date.slice(0, 10)));
+  const topSource = topSourceForMentions(last7Mentions);
+
+  document.getElementById('daily-ov-stats').innerHTML = `
+    <div class="stat-tile">
+      <p class="label">Zmínky (7 dní)</p>
+      <p class="value">${last7.total.toLocaleString('cs-CZ')} ${compareDeltaHtml(last7.total, prev7.total, null) || ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Pozitivní podíl (7 dní)</p>
+      <p class="value">${posShare} % ${compareDeltaHtml(posShare, prevPosShare, 'up') || ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Negativní podíl (7 dní)</p>
+      <p class="value">${negShare} % ${compareDeltaHtml(negShare, prevNegShare, 'down') || ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Nejaktivnější zdroj (7 dní)</p>
+      <p class="value" style="font-size:18px;">${topSource ? `${topSource.domain} <span style="font-size:13px;color:var(--text-muted);">(${topSource.count})</span>` : '—'}</p>
+    </div>
+  `;
+}
+
+function renderRecentNegativeMentions() {
+  const recent = MENTIONS.mentions
+    .filter(m => m.sentiment === 'negative' && (!VERIFIED_ONLY || m.verified))
+    .slice(0, 5);
+  const el = document.getElementById('daily-ov-recent-negative');
+  el.innerHTML = recent.length ? recent.map(m => `
+    <div class="modal-quote">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <p class="modal-quote-date">${m.date.slice(0, 10)} ${m.date.slice(11, 16)} · ${m.domain}</p>
+        <a class="mention-link" href="${m.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>
+      </div>
+      <p class="modal-quote-text">"${m.text}"</p>
+    </div>`).join('') : `<p class="empty-hint">Žádné negativní zmínky nesplňují aktuální filtr.</p>`;
+}
+
+function renderDailySummaryBlock(series) {
+  const sum = arr => arr.reduce((acc, d) => { acc.total += d.total; acc.positive += d.positive; acc.negative += d.negative; return acc; }, { total: 0, positive: 0, negative: 0 });
+  const last7 = sum(series.slice(-7));
+  const prev7 = sum(series.slice(-14, -7));
+  const delta = pctDelta(last7.total, prev7.total);
+  const deltaText = delta === null ? '' : delta >= 0 ? ` (nárůst o ${delta.toFixed(1)} % oproti předchozím 7 dnům)` : ` (pokles o ${Math.abs(delta).toFixed(1)} % oproti předchozím 7 dnům)`;
+  const spikeDay = series.slice().sort((a, b) => b.negative - a.negative)[0];
+
+  let html = `<p>Za posledních 7 dní bylo zaznamenáno <b>${last7.total.toLocaleString('cs-CZ')}</b> zmínek${deltaText}, z toho <b>${last7.negative}</b> negativních.</p>`;
+  if (spikeDay && spikeDay.negative > 0) {
+    html += `<p class="risk">Nejvyšší denní negativita za sledované období: <b>${spikeDay.day}</b> (${spikeDay.negative} negativních zmínek ten den).</p>`;
+  }
+  document.getElementById('daily-ov-summary').innerHTML = html;
+}
+
+function renderDailyTable(series) {
+  const withDelta = series.map((d, i) => ({ ...d, prevTotal: i > 0 ? series[i - 1].total : null }));
+  const body = document.getElementById('daily-ov-table');
+  body.innerHTML = withDelta.slice(-7).reverse().map(d => `
+    <tr>
+      <td>${d.day}</td>
+      <td class="num">${d.total}</td>
+      <td class="num">${d.positive}</td>
+      <td class="num">${d.negative}</td>
+      <td class="num">${d.prevTotal !== null ? compareDeltaHtml(d.total, d.prevTotal, null) || '—' : '—'}</td>
+    </tr>`).join('');
+}
+
+function renderDailyWatchlist(lastDay) {
+  renderDailyWatchTable('daily-ov-watch', computeDailyWatchlist(lastDay).slice(0, 8), 'down');
+}
+
+function renderDailyWatchlistPositive(lastDay) {
+  renderDailyWatchTable('daily-ov-watch-pos', computeDailyWatchlistBySentiment(lastDay, 'positive').slice(0, 8), 'up');
+}
+
+function computeDailySpikeDay(series) {
+  if (!series.length) return null;
+  const top = series.slice().sort((a, b) => b.negative - a.negative)[0];
+  if (!top || top.negative < 3) return null;
+  const others = series.filter(d => d.day !== top.day);
+  const avg = others.length ? others.reduce((s, d) => s + d.negative, 0) / others.length : 0;
+  if (top.negative <= avg * 1.5) return null;
+  return { day: top.day, negative: top.negative, avg: Math.round(avg * 10) / 10 };
+}
+
+function computeDailyTopVolumeCategory(lastDay, sentiment) {
+  const recentDays = new Set([addDays(lastDay, -2), addDays(lastDay, -1), lastDay]);
+  const counts = {};
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (m.sentiment !== sentiment) return;
+    if (!recentDays.has(m.date.slice(0, 10))) return;
+    m.categories.forEach(c => { counts[c] = (counts[c] || 0) + 1; });
+  });
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return entries[0] ? { category: entries[0][0], count: entries[0][1] } : null;
+}
+
+function computeRecentSourceNegativity(lastDay) {
+  const recentDays = new Set([addDays(lastDay, -2), addDays(lastDay, -1), lastDay]);
+  const byDomain = {};
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (!recentDays.has(m.date.slice(0, 10))) return;
+    const d = byDomain[m.domain] = byDomain[m.domain] || { total: 0, negative: 0 };
+    d.total += 1;
+    if (m.sentiment === 'negative') d.negative += 1;
+  });
+  return Object.entries(byDomain)
+    .map(([domain, v]) => ({ domain, total: v.total, negShare: v.total ? (v.negative / v.total) * 100 : 0 }))
+    .filter(x => x.total >= 3)
+    .sort((a, b) => b.negShare - a.negShare);
+}
+
+function renderDailyRecommendations(series, lastDay) {
+  const watchNeg = computeDailyWatchlistBySentiment(lastDay, 'negative');
+  const watchPos = computeDailyWatchlistBySentiment(lastDay, 'positive');
+  const spike = computeDailySpikeDay(series);
+  const topVolNeg = computeDailyTopVolumeCategory(lastDay, 'negative');
+  const sources = computeRecentSourceNegativity(lastDay);
+
+  let html = '';
+
+  if (spike) {
+    html += `<p class="risk">Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident) v seznamu zmínek daného dne.</p>`;
+  }
+
+  watchNeg.slice(0, 3).forEach(w => {
+    const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
+    html += `<p class="risk">Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>`;
+  });
+
+  if (topVolNeg) {
+    const domain = CATEGORY_DOMAIN_CZ[topVolNeg.category] || topVolNeg.category;
+    html += `<p class="risk">Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>`;
+  }
+
+  if (sources[0] && sources[0].negShare > 0) {
+    const s = sources[0];
+    html += `<p class="risk">Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>`;
+  }
+
+  watchPos.slice(0, 2).forEach(w => {
+    const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
+    html += `<p class="win">Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>`;
+  });
+
+  if (!html) html = `<p>Za sledované období nejsou žádné výkyvy vyžadující okamžitou pozornost.</p>`;
+  document.getElementById('daily-ov-recommendations').innerHTML = html;
+}
+
+function renderDailyOverview() {
+  const daily = trueDailyStats();
+  const allDays = Object.keys(daily).sort();
+  const lastDay = allDays.length ? allDays[allDays.length - 1] : ALL_MONTHS[ALL_MONTHS.length - 1] + '-31';
+  const windowStart = addDays(lastDay, -13);
+  const days = dateRange(windowStart, lastDay);
+  const series = days.map(d => {
+    const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
+    return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
+  });
+
+  document.getElementById('daily-ov-chart-sub').textContent = `${windowStart} – ${lastDay}`;
+  renderDailyLineChart('daily-ov-chart', 'dov', 260, null, daily, { from: windowStart, to: lastDay });
+  renderDailyStats(series);
+  renderDailySummaryBlock(series);
+  renderDailyRecommendations(series, lastDay);
+  renderDailyTable(series);
+  renderRecentNegativeMentions();
+  renderDailyWatchlist(lastDay);
+  renderDailyWatchlistPositive(lastDay);
+}
+
+/* ---------- monthly overview (strategic monthly review) ---------- */
+function computeCategoryMonthlyTable() {
+  const months = monthsInGlobalRange();
+  const byCategory = {};
+  SENT.aspect_summary.forEach(a => {
+    const c = byCategory[a.category] = byCategory[a.category] || { monthly: {} };
+    ALL_MONTHS.forEach(m => {
+      const cell = c.monthly[m] = c.monthly[m] || { positive: 0, neutral: 0, negative: 0, v_positive: 0, v_neutral: 0, v_negative: 0 };
+      const src = a.monthly[m] || {};
+      ['positive', 'neutral', 'negative', 'v_positive', 'v_neutral', 'v_negative'].forEach(k => { cell[k] += src[k] || 0; });
+    });
+  });
+  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name]);
+  return categoryOrder.map(cat => ({
+    category: cat,
+    monthlyTotals: months.map(m => ({ month: m, ...sumMonthly(byCategory[cat].monthly, [m]) })),
+    rangeTotals: sumMonthly(byCategory[cat].monthly, months)
+  }));
+}
+
+function renderMonthlyCategoryTable() {
+  const months = monthsInGlobalRange();
+  const rows = computeCategoryMonthlyTable();
+  const header = `<tr><th>Kategorie</th>${months.map(m => `<th style="text-align:right;">${MONTH_NAMES_CZ[m] || m}</th>`).join('')}<th style="text-align:right;">Celkem</th><th style="text-align:right;">Negativní podíl</th></tr>`;
+  const body = rows.map(r => {
+    const negShare = r.rangeTotals.total ? Math.round((r.rangeTotals.negative / r.rangeTotals.total) * 1000) / 10 : 0;
+    const cells = r.monthlyTotals.map(mt => `<td class="num">${mt.total}</td>`).join('');
+    return `<tr><td>${r.category}</td>${cells}<td class="num">${r.rangeTotals.total}</td><td class="num">${negShare} %</td></tr>`;
+  }).join('');
+  document.getElementById('monthly-ov-cat-table').innerHTML = `<table class="trending-table"><thead>${header}</thead><tbody>${body}</tbody></table>`;
+}
+
+function computeRecurringIssues() {
+  const months = monthsInGlobalRange();
+  const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
+  return ISSUES_TREND.top_issues
+    .map(issue => ({ issue, activeMonths: months.filter(m => (issue[monthsKey][m] || 0) > 0) }))
+    .filter(x => x.activeMonths.length >= 2)
+    .sort((a, b) => b.activeMonths.length - a.activeMonths.length ||
+      months.reduce((s, m) => s + (b.issue[monthsKey][m] || 0), 0) - months.reduce((s, m) => s + (a.issue[monthsKey][m] || 0), 0));
+}
+
+function renderMonthlyRecurring() {
+  const recurring = computeRecurringIssues();
+  const months = monthsInGlobalRange();
+  const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
+  const el = document.getElementById('monthly-ov-recurring');
+  el.innerHTML = recurring.length ? `
+    <table class="trending-table">
+      <thead><tr><th>Issue</th><th>Aspekt</th><th style="text-align:right;">Měsíců aktivní</th><th style="text-align:right;">Zmínky celkem</th></tr></thead>
+      <tbody>${recurring.map(r => {
+        const total = months.reduce((s, m) => s + (r.issue[monthsKey][m] || 0), 0);
+        return `<tr><td>${r.issue.label}</td><td>${r.issue.aspect_label}</td><td class="num">${r.activeMonths.length}</td><td class="num">${total}</td></tr>`;
+      }).join('')}</tbody>
+    </table>` : `<p class="empty-hint">Žádné issue se v tomto období neopakuje napříč více měsíci.</p>`;
+}
+
+function renderMonthlySummary() {
+  const months = monthsInGlobalRange();
+  const stats = trueMonthStats().filter(m => months.includes(m.month));
+  const totalAll = stats.reduce((s, m) => s + m.total, 0);
+  const totalPos = stats.reduce((s, m) => s + m.positive, 0);
+  const totalNeg = stats.reduce((s, m) => s + m.negative, 0);
+  const posShare = totalAll ? Math.round((totalPos / totalAll) * 1000) / 10 : 0;
+  const negShare = totalAll ? Math.round((totalNeg / totalAll) * 1000) / 10 : 0;
+  const first = stats[0], last = stats[stats.length - 1];
+  const delta = (first && last && first !== last) ? pctDelta(last.total, first.total) : null;
+  const deltaText = delta === null ? '' : delta >= 0
+    ? ` (nárůst objemu o ${delta.toFixed(1)} % od ${MONTH_NAMES_CZ[first.month] || first.month})`
+    : ` (pokles objemu o ${Math.abs(delta).toFixed(1)} % od ${MONTH_NAMES_CZ[first.month] || first.month})`;
+  const rangeLabel = months.map(m => MONTH_NAMES_CZ[m] || m).join(' – ');
+
+  document.getElementById('monthly-ov-summary').innerHTML =
+    `<p>Za období <b>${rangeLabel}</b> bylo zaznamenáno <b>${totalAll.toLocaleString('cs-CZ')}</b> zmínek${deltaText}. Pozitivních <b>${posShare} %</b>, negativních <b>${negShare} %</b>.</p>`;
+}
+
+function renderMonthlyStats() {
+  const months = monthsInGlobalRange();
+  const stats = trueMonthStats().filter(m => months.includes(m.month));
+  const totalAll = stats.reduce((s, m) => s + m.total, 0);
+  const totalPos = stats.reduce((s, m) => s + m.positive, 0);
+  const totalNeg = stats.reduce((s, m) => s + m.negative, 0);
+  const posShare = totalAll ? Math.round((totalPos / totalAll) * 1000) / 10 : 0;
+  const negShare = totalAll ? Math.round((totalNeg / totalAll) * 1000) / 10 : 0;
+  const first = stats[0], last = stats[stats.length - 1];
+  const hasSpan = first && last && first !== last;
+  const firstPosShare = hasSpan && first.total ? (first.positive / first.total) * 100 : null;
+  const lastPosShare = hasSpan && last.total ? (last.positive / last.total) * 100 : null;
+  const firstNegShare = hasSpan && first.total ? (first.negative / first.total) * 100 : null;
+  const lastNegShare = hasSpan && last.total ? (last.negative / last.total) * 100 : null;
+
+  const rangeMentions = MENTIONS.mentions.filter(m => {
+    if (VERIFIED_ONLY && !m.verified) return false;
+    return months.includes(m.month);
+  });
+  const topSource = topSourceForMentions(rangeMentions);
+
+  document.getElementById('monthly-ov-stats').innerHTML = `
+    <div class="stat-tile">
+      <p class="label">Zmínky v období</p>
+      <p class="value">${totalAll.toLocaleString('cs-CZ')} ${hasSpan ? (compareDeltaHtml(last.total, first.total, null) || '') : ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Pozitivní podíl</p>
+      <p class="value">${posShare} % ${hasSpan ? (compareDeltaHtml(lastPosShare, firstPosShare, 'up') || '') : ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Negativní podíl</p>
+      <p class="value">${negShare} % ${hasSpan ? (compareDeltaHtml(lastNegShare, firstNegShare, 'down') || '') : ''}</p>
+    </div>
+    <div class="stat-tile">
+      <p class="label">Nejaktivnější zdroj</p>
+      <p class="value" style="font-size:18px;">${topSource ? `${topSource.domain} <span style="font-size:13px;color:var(--text-muted);">(${topSource.count})</span>` : '—'}</p>
+    </div>
+  `;
+}
+
+function computeSourceNegativityShares() {
+  const months = monthsInGlobalRange();
+  const rangeMentions = MENTIONS.mentions.filter(m => {
+    if (VERIFIED_ONLY && !m.verified) return false;
+    return months.includes(m.month);
+  });
+  const byDomain = {};
+  rangeMentions.forEach(m => {
+    const d = byDomain[m.domain] = byDomain[m.domain] || { total: 0, negative: 0 };
+    d.total += 1;
+    if (m.sentiment === 'negative') d.negative += 1;
+  });
+  return Object.entries(byDomain)
+    .map(([domain, v]) => ({ domain, total: v.total, negShare: v.total ? (v.negative / v.total) * 100 : 0 }))
+    .filter(x => x.total >= 10)
+    .sort((a, b) => b.negShare - a.negShare);
+}
+
+function renderMonthlyRecommendations() {
+  const topNegAll = flattenTrend(computeSentimentTrendByCategory('negative')).sort((a, b) => b.delta - a.delta);
+  const topPosAll = flattenTrend(computeSentimentTrendByCategory('positive')).sort((a, b) => b.delta - a.delta);
+  const recurring = computeRecurringIssues();
+  const rows = computeCategoryMonthlyTable();
+  const sources = computeSourceNegativityShares();
+
+  let html = '';
+
+  topNegAll.slice(0, 3).forEach(t => {
+    const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
+    html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span></p>`;
+  });
+  if (!topNegAll.length) html += '';
+
+  recurring.slice(0, 2).forEach(r => {
+    html += `<p class="risk">Přetrvávající problém: <b>${r.issue.label}</b> se objevuje ${r.activeMonths.length} měsíce po sobě ve vybraném období — nejde o jednorázový výkyv, ale o opakující se téma vyžadující systémové řešení.</p>`;
+  });
+
+  const quickWin = rows.slice().sort((a, b) => (b.rangeTotals.negative || 0) - (a.rangeTotals.negative || 0))[0];
+  if (quickWin && quickWin.rangeTotals.total) {
+    const negShare = Math.round((quickWin.rangeTotals.negative / quickWin.rangeTotals.total) * 1000) / 10;
+    const domain = CATEGORY_DOMAIN_CZ[quickWin.category] || quickWin.category;
+    html += `<p class="risk">Největší absolutní dopad: <b>${quickWin.category}</b> — ${quickWin.rangeTotals.negative.toLocaleString('cs-CZ')} negativních zmínek v období (${negShare} % z objemu kategorie). I bez rychlého růstu jde o téma s nejvyšším počtem nespokojených zákazníků.<span class="domain-tag">${domain}</span></p>`;
+  }
+
+  if (sources[0]) {
+    const s = sources[0];
+    html += `<p class="risk">Kanál k prověření: <b>${s.domain}</b> má nejvyšší podíl negativních zmínek (${s.negShare.toFixed(0)} % z ${s.total.toLocaleString('cs-CZ')}) — zvažte cílenou komunikaci nebo monitoring tohoto zdroje.</p>`;
+  }
+
+  topPosAll.slice(0, 2).forEach(t => {
+    const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
+    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span></p>`;
+  });
+
+  if (!html) html = `<p>Nedostatek dat pro spolehlivá strategická doporučení v tomto období.</p>`;
+  document.getElementById('monthly-ov-recommendations').innerHTML = html;
+}
+
+function renderMonthlyOverview() {
+  document.getElementById('monthly-ov-chart-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
+  renderMonthlySummary();
+  renderMonthlyStats();
+  renderDailyLineChart('monthly-ov-chart', 'mov', 280);
+  renderMonthlyCategoryTable();
+  renderMonthlyRecurring();
+  renderMonthlyRecommendations();
+}
+
+function renderOverview() {
+  renderExecutiveSummary();
+  const { cur, prev } = renderOverviewCompare();
+  renderOverviewSources();
+  renderOverviewCategories();
+  renderOverviewDonut();
+  renderOverviewLineChart();
+  renderOverviewGauge(cur, prev);
+}
+
+/* ---------- load ---------- */
+/* ---------- mentions tab ---------- */
+let MENTIONS = null;
+let mentionsPage = 0;
+const MENTIONS_PAGE_SIZE = 50;
+const SENTIMENT_LABEL_SHORT_CZ = { positive: 'Pozitivní', neutral: 'Neutrální', negative: 'Negativní' };
+
+function getFilteredMentions() {
+  const category = document.getElementById('mf-category').value;
+  const channel = document.getElementById('mf-channel').value;
+  const sentiment = document.getElementById('mf-sentiment').value;
+  const verified = document.getElementById('mf-verified').value;
+  const search = document.getElementById('mf-search').value.trim().toLowerCase();
+  const dateFrom = document.getElementById('mf-date-from').value;
+  const dateTo = document.getElementById('mf-date-to').value;
+  return MENTIONS.mentions.filter(m => {
+    if (VERIFIED_ONLY && !m.verified) return false;
+    const day = m.date.slice(0, 10);
+    if (dateFrom && day < dateFrom) return false;
+    if (dateTo && day > dateTo) return false;
+    if (category && !m.categories.includes(category)) return false;
+    if (channel && m.channel !== channel) return false;
+    if (sentiment && m.sentiment !== sentiment) return false;
+    if (verified && String(!!m.verified) !== verified) return false;
+    if (search && !m.text.toLowerCase().includes(search)) return false;
+    return true;
+  });
+}
+
+function renderMentionsTable() {
+  const filtered = getFilteredMentions();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / MENTIONS_PAGE_SIZE));
+  mentionsPage = Math.min(mentionsPage, totalPages - 1);
+  const start = mentionsPage * MENTIONS_PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + MENTIONS_PAGE_SIZE);
+
+  document.getElementById('mentions-count').textContent =
+    `${filtered.length.toLocaleString('cs-CZ')} zmínek odpovídá filtru (z celkem ${MENTIONS.mentions.length.toLocaleString('cs-CZ')})`;
+
+  const body = document.getElementById('mentions-body');
+  body.innerHTML = pageItems.map(m => `
+    <tr>
+      <td>${m.date.slice(0, 10)} ${m.date.slice(11, 16)}</td>
+      <td>${m.domain}</td>
+      <td><span class="sentiment-badge ${m.sentiment}">${SENTIMENT_LABEL_SHORT_CZ[m.sentiment]}</span></td>
+      <td>${m.verified ? `<span class="verified-badge">Ověřeno</span>` : `<span class="empty-hint">—</span>`}</td>
+      <td class="mention-text-cell">${m.text}</td>
+      <td><a class="mention-link" href="${m.url}" target="_blank" rel="noopener noreferrer">LINK</a></td>
+    </tr>
+  `).join('') || `<tr><td colspan="6" class="empty-hint">Žádné zmínky neodpovídají zadaným filtrům.</td></tr>`;
+
+  document.getElementById('mf-page-label').textContent = `Strana ${mentionsPage + 1} z ${totalPages}`;
+  document.getElementById('mf-prev').disabled = mentionsPage <= 0;
+  document.getElementById('mf-next').disabled = mentionsPage >= totalPages - 1;
+}
+
+function initMentionsFilters() {
+  const catSelect = document.getElementById('mf-category');
+  MENTIONS.categories.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    catSelect.appendChild(opt);
+  });
+  const chSelect = document.getElementById('mf-channel');
+  MENTIONS.channels.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    chSelect.appendChild(opt);
+  });
+  ['mf-category', 'mf-channel', 'mf-sentiment', 'mf-verified', 'mf-date-from', 'mf-date-to'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => { mentionsPage = 0; renderMentionsTable(); });
+  });
+  document.getElementById('mf-search').addEventListener('input', () => { mentionsPage = 0; renderMentionsTable(); });
+  document.getElementById('mf-prev').addEventListener('click', () => { mentionsPage--; renderMentionsTable(); });
+  document.getElementById('mf-next').addEventListener('click', () => { mentionsPage++; renderMentionsTable(); });
+}
+
+/* ---------- load ---------- */
+let EXAMPLES = null;
+let TAG_SENTIMENT = null;
+let KEYWORDS = null;
+const CACHE_BUST = Date.now();
+const jf = name => fetch(`${name}?v=${CACHE_BUST}`, { cache: 'no-store' }).then(r => r.json());
+Promise.all([
+  jf('tags_data.json'),
+  jf('sentiment_data.json'),
+  jf('issues_trend_data.json'),
+  jf('sources_data.json'),
+  jf('daily_sentiment_data.json'),
+  jf('examples_data.json'),
+  jf('mentions_data.json'),
+  jf('tag_sentiment_data.json'),
+  jf('keywords_data.json')
+]).then(([tagsData, sentData, issuesTrendData, sourcesData, dailyData, examplesData, mentionsData, tagSentimentData, keywordsData]) => {
+  DATA = tagsData;
+  SENT = sentData;
+  ISSUES_TREND = issuesTrendData;
+  SOURCES = sourcesData;
+  DAILY = dailyData;
+  EXAMPLES = examplesData;
+  MENTIONS = mentionsData;
+  TAG_SENTIMENT = tagSentimentData;
+  KEYWORDS = keywordsData;
+  document.getElementById('meta-mentions').textContent = SENT.meta.total_mentions.toLocaleString('cs-CZ');
+  document.getElementById('meta-tags').textContent = DATA.total_tags;
+  renderChart();
+  renderTable();
+  initMentionsFilters();
+  renderMentionsTable();
+  initTrendCategoryFilters();
+  renderKeywords();
+  renderAllForGlobalRange();
+}).catch(err => {
+  document.getElementById('meta-mentions').textContent = 'Chyba';
+  console.error('Chyba při načítání dat:', err);
+});
+
+function renderAllForGlobalRange() {
+  const totalNow = trueMonthStats().reduce((s, m) => s + m.total, 0);
+  document.getElementById('meta-mentions').textContent = totalNow.toLocaleString('cs-CZ');
+  renderOverview();
+  renderDailyOverview();
+  renderMonthlyOverview();
+  renderSentStats();
+  renderSentimentChart();
+  renderTrend();
+  renderIssues();
+  renderIssuesTrendList();
+  renderIssuesDaily();
+  renderSources();
+  renderPainPointByCategory();
+  renderPainPointByTags();
+  renderTrending();
+  renderTrendingPositive();
+  renderSourceCategoryMatrix();
+  renderKeywords();
+  mentionsPage = 0;
+  renderMentionsTable();
+}
+
+function onGlobalRangeChange() {
+  const fromInput = document.getElementById('global-date-from');
+  const toInput = document.getElementById('global-date-to');
+  let from = fromInput.value, to = toInput.value;
+  if (from > to) { to = from; toInput.value = to; }
+  GLOBAL_RANGE = { from, to };
+  renderAllForGlobalRange();
+}
+document.getElementById('global-date-from').addEventListener('change', onGlobalRangeChange);
+document.getElementById('global-date-to').addEventListener('change', onGlobalRangeChange);
+
+document.querySelectorAll('.verified-seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    VERIFIED_ONLY = btn.dataset.verified === 'true';
+    document.querySelectorAll('.verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    renderAllForGlobalRange();
+  });
+});
+</script>
+</body>
+</html>
