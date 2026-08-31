@@ -1088,6 +1088,21 @@
     padding: 1px 9px;
     margin-left: 4px;
   }
+  .reco-item {
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    border-left: 3px solid var(--border);
+  }
+  .reco-item:last-child { margin-bottom: 0; }
+  .reco-item.risk { border-left-color: var(--neg); }
+  .reco-item.win { border-left-color: var(--pos); }
+  .reco-item p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.6; color: var(--text-secondary); }
+  .reco-item p:last-child { margin-bottom: 0; }
+  .reco-chart { margin: 6px 0 8px; }
+  .reco-example { font-size: 12.5px; color: var(--text-muted); font-style: italic; }
+  .reco-example .mention-link { font-style: normal; margin-left: 6px; }
   .overview-compare {
     display: flex;
     flex-direction: column;
@@ -3346,37 +3361,123 @@ function computeRecentSourceNegativity(lastDay) {
     .sort((a, b) => b.negShare - a.negShare);
 }
 
-function renderDailyRecommendations(series, lastDay) {
+function sparklineSvg(values, color, w, h) {
+  w = w || 260; h = h || 44;
+  const max = Math.max(1, ...values);
+  const pad = 3;
+  const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+  const pts = values.map((v, i) => ({ x: pad + step * i, y: h - pad - (v / max) * (h - pad * 2) }));
+  const line = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${pad},${h - pad} ${line} ${(w - pad).toFixed(1)},${h - pad}`;
+  return `<svg class="reco-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <polygon points="${area}" fill="${color}" opacity="0.16"/>
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function categoryDailySentimentSeries(category, sentiment, days) {
+  const counts = {};
+  days.forEach(d => { counts[d] = 0; });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (m.sentiment !== sentiment) return;
+    const day = m.date.slice(0, 10);
+    if (!(day in counts)) return;
+    if (!m.categories.includes(category)) return;
+    counts[day] += 1;
+  });
+  return days.map(d => counts[d]);
+}
+
+function sourceDailyVolumeSeries(domain, days) {
+  const counts = {};
+  days.forEach(d => { counts[d] = 0; });
+  MENTIONS.mentions.forEach(m => {
+    if (VERIFIED_ONLY && !m.verified) return;
+    if (m.domain !== domain) return;
+    const day = m.date.slice(0, 10);
+    if (!(day in counts)) return;
+    counts[day] += 1;
+  });
+  return days.map(d => counts[d]);
+}
+
+function findExampleMention(predicate) {
+  return MENTIONS.mentions.find(m => (!VERIFIED_ONLY || m.verified) && predicate(m)) || null;
+}
+
+function exampleQuoteHtml(mention) {
+  if (!mention) return '';
+  const short = mention.text.length > 160 ? mention.text.slice(0, 160) + '…' : mention.text;
+  return `<p class="reco-example">Příklad: „${short}“ <a class="mention-link" href="${mention.url}" target="_blank" rel="noopener noreferrer">zdroj →</a></p>`;
+}
+
+function renderDailyRecommendations(series, lastDay, days) {
   const watchNeg = computeDailyWatchlistBySentiment(lastDay, 'negative');
   const watchPos = computeDailyWatchlistBySentiment(lastDay, 'positive');
   const spike = computeDailySpikeDay(series);
   const topVolNeg = computeDailyTopVolumeCategory(lastDay, 'negative');
   const sources = computeRecentSourceNegativity(lastDay);
+  const recentDays = new Set([addDays(lastDay, -2), addDays(lastDay, -1), lastDay]);
 
   let html = '';
 
   if (spike) {
-    html += `<p class="risk">Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident) v seznamu zmínek daného dne.</p>`;
+    const example = findExampleMention(m => m.sentiment === 'negative' && m.date.slice(0, 10) === spike.day);
+    html += `
+      <div class="reco-item risk">
+        <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident).</p>
+        <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)')}</div>
+        ${exampleQuoteHtml(example)}
+      </div>`;
   }
 
   watchNeg.slice(0, 3).forEach(w => {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
-    html += `<p class="risk">Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>`;
+    const catSeries = categoryDailySentimentSeries(w.category, 'negative', days);
+    const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
+    html += `
+      <div class="reco-item risk">
+        <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)')}</div>
+        ${exampleQuoteHtml(example)}
+      </div>`;
   });
 
   if (topVolNeg) {
     const domain = CATEGORY_DOMAIN_CZ[topVolNeg.category] || topVolNeg.category;
-    html += `<p class="risk">Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>`;
+    const catSeries = categoryDailySentimentSeries(topVolNeg.category, 'negative', days);
+    const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(topVolNeg.category));
+    html += `
+      <div class="reco-item risk">
+        <p>Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)')}</div>
+        ${exampleQuoteHtml(example)}
+      </div>`;
   }
 
   if (sources[0] && sources[0].negShare > 0) {
     const s = sources[0];
-    html += `<p class="risk">Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>`;
+    const srcSeries = sourceDailyVolumeSeries(s.domain, days);
+    const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.domain === s.domain);
+    html += `
+      <div class="reco-item risk">
+        <p>Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
+        <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)')}</div>
+        ${exampleQuoteHtml(example)}
+      </div>`;
   }
 
   watchPos.slice(0, 2).forEach(w => {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
-    html += `<p class="win">Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>`;
+    const catSeries = categoryDailySentimentSeries(w.category, 'positive', days);
+    const example = findExampleMention(m => m.sentiment === 'positive' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
+    html += `
+      <div class="reco-item win">
+        <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)')}</div>
+        ${exampleQuoteHtml(example)}
+      </div>`;
   });
 
   if (!html) html = `<p>Za sledované období nejsou žádné výkyvy vyžadující okamžitou pozornost.</p>`;
@@ -3398,7 +3499,7 @@ function renderDailyOverview() {
   renderDailyLineChart('daily-ov-chart', 'dov', 260, null, daily, { from: windowStart, to: lastDay });
   renderDailyStats(series);
   renderDailySummaryBlock(series);
-  renderDailyRecommendations(series, lastDay);
+  renderDailyRecommendations(series, lastDay, days);
   renderDailyTable(series);
   renderRecentNegativeMentions();
   renderDailyWatchlist(lastDay);
