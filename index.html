@@ -1846,7 +1846,7 @@
 /* ---------- user settings (theme, accent, defaults) — persisted per-browser ---------- */
 const SETTINGS_KEY = 'someli_user_settings';
 function loadSettings() {
-  const defaults = { theme: 'light', accent: 'terracotta', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
+  const defaults = { theme: 'dark', accent: 'terracotta', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
   catch (e) { return defaults; }
 }
