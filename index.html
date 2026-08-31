@@ -32,6 +32,34 @@
     --shadow-md:      0 8px 24px rgba(60,40,20,0.18);
   }
 
+  /* Dark variant of the same warm, non-green palette — toggled via the
+     Nastavení page, applied as a data-theme attribute on the root element. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #2a2019;
+    --surface-2:      #34281e;
+    --page-plane:     #1c140e;
+    --text-primary:   #f3e6d6;
+    --text-secondary: #c9b49b;
+    --text-muted:     #9c8770;
+    --gridline:       #3d2f23;
+    --baseline:       #5a4a38;
+    --border:         rgba(240,214,180,0.14);
+    --series-1:       #d97a3e;
+    --series-1-soft:  rgba(217,122,62,0.18);
+    --seq-100:        #f0c294;
+    --seq-700:        #9a4a1c;
+    --hover-wash:     rgba(217,122,62,0.12);
+    --neg:            #d9695a;
+    --neutral-fill:   #a89478;
+    --pos:            #5b9dc2;
+    --accent-warm:    #d1a13d;
+    --on-accent:      #1c140e;
+    --shadow-sm:      0 1px 2px rgba(0,0,0,0.35);
+    --shadow-md:      0 8px 24px rgba(0,0,0,0.5);
+  }
+  :root[data-theme="dark"] .meta-range-inputs input[type="date"] { color-scheme: dark; }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; min-height: 100%; }
   html {
@@ -780,6 +808,19 @@
     font-weight: 600;
   }
 
+  .accent-swatch-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+  }
+  .accent-swatch-btn.active {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
+  }
+
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
@@ -1293,6 +1334,10 @@
 
     <p class="nav-section-label">Metodika dat</p>
     <button class="tab-btn" data-tab="tab-tags">Tag taxonomie</button>
+
+    <p class="nav-section-label">Uživatelská nastavení</p>
+    <button class="tab-btn" data-tab="tab-my-dashboard">Moje přehled</button>
+    <button class="tab-btn" data-tab="tab-settings">Nastavení</button>
   </div>
 
   <div class="content">
@@ -1717,6 +1762,60 @@
       <div class="chips" id="keywords-bigrams"></div>
     </div>
   </div>
+
+  <!-- TAB: Custom dashboard -->
+  <div class="tab-panel" id="tab-my-dashboard">
+    <div class="card">
+      <h2>Moje přehled</h2>
+      <p class="sub">Vyberte, které bloky se mají zobrazit na vaší vlastní přehledové stránce · výběr respektuje aktuální filtr období a ověřených uživatelů · ukládá se do tohoto prohlížeče</p>
+      <div id="dashboard-widget-picker" class="cat-filter-row"></div>
+      <div class="toolbar" style="margin-top:14px;">
+        <button id="dashboard-apply" style="background:var(--series-1);border:1px solid var(--series-1);color:var(--on-accent);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Uložit a zobrazit</button>
+      </div>
+    </div>
+    <div id="dashboard-widgets-container"></div>
+  </div>
+
+  <!-- TAB: User settings -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="card">
+      <h2>Vzhled</h2>
+      <p class="sub">Motiv a barva zvýraznění se ukládají do tohoto prohlížeče a projeví se okamžitě.</p>
+      <div class="filter-field" style="margin-bottom:18px;">
+        <label>Motiv</label>
+        <div class="verified-segmented" id="settings-theme-toggle" style="margin-top:6px;">
+          <button class="verified-seg-btn" data-theme-choice="light">Světlý</button>
+          <button class="verified-seg-btn" data-theme-choice="dark">Tmavý</button>
+        </div>
+      </div>
+      <div class="filter-field">
+        <label>Barva zvýraznění</label>
+        <div class="accent-swatch-row" id="settings-accent-row" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Výchozí zobrazení</h2>
+      <p class="sub">Co se nastaví při otevření reportu, dokud to ručně nezměníte.</p>
+      <div class="filter-field" style="margin-bottom:18px;">
+        <label>Filtr zmínek</label>
+        <div class="verified-segmented" id="settings-verified-toggle" style="margin-top:6px;">
+          <button class="verified-seg-btn" data-verified-choice="false">Všechny zmínky</button>
+          <button class="verified-seg-btn" data-verified-choice="true">Jen ověření uživatelé</button>
+        </div>
+      </div>
+      <div class="filter-field">
+        <label>Počet zmínek na stránku (list Zmínky)</label>
+        <input id="settings-page-size" type="number" min="10" max="200" step="10" style="margin-top:6px;max-width:120px;">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Obnovit výchozí</h2>
+      <p class="sub">Vrátí vzhled a výchozí zobrazení na tovární nastavení v tomto prohlížeči.</p>
+      <button id="settings-reset" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">Obnovit výchozí nastavení</button>
+    </div>
+  </div>
   </div>
   </div>
 </div>
@@ -1744,6 +1843,54 @@
 </div>
 
 <script>
+/* ---------- user settings (theme, accent, defaults) — persisted per-browser ---------- */
+const SETTINGS_KEY = 'someli_user_settings';
+function loadSettings() {
+  const defaults = { theme: 'light', accent: 'terracotta', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
+  catch (e) { return defaults; }
+}
+function saveSettings(patch) {
+  const next = { ...loadSettings(), ...patch };
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch (e) {}
+  USER_SETTINGS = next;
+  return next;
+}
+let USER_SETTINGS = loadSettings();
+
+function hexToRgbArr(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const ACCENT_PRESETS = {
+  terracotta: { label: 'Terakotová', base: '#b5541f' },
+  navy:       { label: 'Námořnická', base: '#2c4f6b' },
+  wine:       { label: 'Vínová', base: '#7a2f4a' },
+  mustard:    { label: 'Hořčicová', base: '#a8781e' },
+  slate:      { label: 'Břidlicová', base: '#4a5568' },
+};
+
+function applyAccent(key) {
+  const preset = ACCENT_PRESETS[key] || ACCENT_PRESETS.terracotta;
+  const [r, g, b] = hexToRgbArr(preset.base);
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+  const root = document.documentElement.style;
+  root.setProperty('--series-1', preset.base);
+  root.setProperty('--series-1-soft', `rgba(${r},${g},${b},0.14)`);
+  root.setProperty('--hover-wash', `rgba(${r},${g},${b},0.08)`);
+  root.setProperty('--seq-100', lerpColor(preset.base, '#ffffff', 0.55));
+  root.setProperty('--seq-700', lerpColor(preset.base, '#1a1008', 0.45));
+  root.setProperty('--on-accent', luminance > 140 ? '#2b211a' : '#fff6e9');
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+}
+
+applyTheme(USER_SETTINGS.theme);
+applyAccent(USER_SETTINGS.accent);
+
 const tooltip = document.getElementById('tooltip');
 let DATA = null;
 let SENT = null;
@@ -1757,7 +1904,7 @@ let GLOBAL_RANGE = { from: '2026-05-01', to: '2026-07-31' };
 function monthsInGlobalRange() {
   return ALL_MONTHS.filter(m => GLOBAL_RANGE.to >= (m + '-01') && GLOBAL_RANGE.from <= (m + '-31'));
 }
-let VERIFIED_ONLY = false;
+let VERIFIED_ONLY = USER_SETTINGS.defaultVerified;
 function sumMonthly(monthlyDict, months) {
   const prefix = VERIFIED_ONLY ? 'v_' : '';
   const out = { positive: 0, neutral: 0, negative: 0 };
@@ -3457,7 +3604,7 @@ function renderOverview() {
 /* ---------- mentions tab ---------- */
 let MENTIONS = null;
 let mentionsPage = 0;
-const MENTIONS_PAGE_SIZE = 50;
+let MENTIONS_PAGE_SIZE = USER_SETTINGS.pageSize;
 const SENTIMENT_LABEL_SHORT_CZ = { positive: 'Pozitivní', neutral: 'Neutrální', negative: 'Negativní' };
 
 function getFilteredMentions() {
@@ -3530,6 +3677,157 @@ function initMentionsFilters() {
   document.getElementById('mf-next').addEventListener('click', () => { mentionsPage++; renderMentionsTable(); });
 }
 
+/* ---------- settings page (theme, accent, defaults) ---------- */
+function initSettingsUI() {
+  document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.themeChoice === USER_SETTINGS.theme);
+    btn.addEventListener('click', () => {
+      applyTheme(btn.dataset.themeChoice);
+      saveSettings({ theme: btn.dataset.themeChoice });
+      document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  document.querySelectorAll('#settings-verified-toggle .verified-seg-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.verifiedChoice === String(USER_SETTINGS.defaultVerified));
+    btn.addEventListener('click', () => {
+      saveSettings({ defaultVerified: btn.dataset.verifiedChoice === 'true' });
+      document.querySelectorAll('#settings-verified-toggle .verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  const accentRow = document.getElementById('settings-accent-row');
+  accentRow.innerHTML = Object.entries(ACCENT_PRESETS).map(([key, p]) =>
+    `<button class="accent-swatch-btn${USER_SETTINGS.accent === key ? ' active' : ''}" data-accent-key="${key}" style="background:${p.base};" title="${p.label}"></button>`
+  ).join('');
+  accentRow.querySelectorAll('.accent-swatch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applyAccent(btn.dataset.accentKey);
+      saveSettings({ accent: btn.dataset.accentKey });
+      accentRow.querySelectorAll('.accent-swatch-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  const pageSizeInput = document.getElementById('settings-page-size');
+  pageSizeInput.value = USER_SETTINGS.pageSize;
+  pageSizeInput.addEventListener('change', () => {
+    const v = Math.max(10, Math.min(200, parseInt(pageSizeInput.value, 10) || 50));
+    pageSizeInput.value = v;
+    MENTIONS_PAGE_SIZE = v;
+    saveSettings({ pageSize: v });
+    mentionsPage = 0;
+    renderMentionsTable();
+  });
+
+  document.getElementById('settings-reset').addEventListener('click', () => {
+    localStorage.removeItem(SETTINGS_KEY);
+    location.reload();
+  });
+}
+initSettingsUI();
+
+/* ---------- custom dashboard ("Moje přehled") ---------- */
+const DASHBOARD_WIDGETS = {
+  summary:     { label: 'Shrnutí měsíce', render: renderDashboardSummary },
+  trend:       { label: 'Vývoj v čase (14 dní)', render: renderDashboardTrend },
+  topIssues:   { label: 'Top 5 issues', render: renderDashboardTopIssues },
+  topSources:  { label: 'Top 5 zdrojů', render: renderDashboardTopSources },
+  trendingNeg: { label: 'Rostoucí negativita (top 5)', render: renderDashboardTrendingNeg },
+  trendingPos: { label: 'Rostoucí pozitivita (top 5)', render: renderDashboardTrendingPos },
+};
+
+function renderDashboardSummary(containerId) {
+  const months = monthsInGlobalRange();
+  const stats = trueMonthStats().filter(m => months.includes(m.month));
+  const totalAll = stats.reduce((s, m) => s + m.total, 0);
+  const totalPos = stats.reduce((s, m) => s + m.positive, 0);
+  const totalNeg = stats.reduce((s, m) => s + m.negative, 0);
+  const posShare = totalAll ? Math.round((totalPos / totalAll) * 1000) / 10 : 0;
+  const negShare = totalAll ? Math.round((totalNeg / totalAll) * 1000) / 10 : 0;
+  document.getElementById(containerId).innerHTML =
+    `<p>Ve zvoleném období bylo zaznamenáno <b>${totalAll.toLocaleString('cs-CZ')}</b> zmínek o Tesla Model Y, z toho <b>${posShare}&nbsp;%</b> pozitivních a <b>${negShare}&nbsp;%</b> negativních.</p>`;
+}
+
+function renderDashboardTrend(containerId) {
+  renderDailyLineChart(containerId, 'dash-trend', 220);
+}
+
+function renderDashboardTopIssues(containerId) {
+  const months = monthsInGlobalRange();
+  const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
+  const top = ISSUES_TREND.top_issues
+    .map(issue => ({ issue, total: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0) }))
+    .filter(x => x.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+  const el = document.getElementById(containerId);
+  el.innerHTML = top.length ? `
+    <table class="trending-table">
+      <thead><tr><th>Issue</th><th>Aspekt</th><th style="text-align:right;">Zmínky</th></tr></thead>
+      <tbody>${top.map(t => `<tr><td>${t.issue.label}</td><td>${t.issue.aspect_label}</td><td class="num">${t.total}</td></tr>`).join('')}</tbody>
+    </table>` : `<p class="empty-hint">Žádná data pro zvolené období.</p>`;
+}
+
+function renderDashboardTopSources(containerId) {
+  const months = monthsInGlobalRange();
+  const recomputed = SOURCES.sources
+    .map(s => ({ source: s.source, ...sumMonthly(s.monthly, months) }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+  const grandTotal = recomputed.reduce((s, x) => s + x.total, 0) || 1;
+  const el = document.getElementById(containerId);
+  el.innerHTML = `
+    <table class="trending-table">
+      <thead><tr><th>Zdroj</th><th style="text-align:right;">Zmínky</th><th style="text-align:right;">Podíl</th></tr></thead>
+      <tbody>${recomputed.map(s => `<tr><td>${s.source}</td><td class="num">${s.total.toLocaleString('cs-CZ')}</td><td class="num">${((s.total / grandTotal) * 100).toFixed(1)}&nbsp;%</td></tr>`).join('')}</tbody>
+    </table>`;
+}
+
+function renderDashboardTrendList(containerId, field, goodDirection) {
+  const top = flattenTrend(computeSentimentTrendByCategory(field)).sort((a, b) => b.delta - a.delta).slice(0, 5);
+  const el = document.getElementById(containerId);
+  el.innerHTML = top.length ? `
+    <table class="trending-table">
+      <thead><tr><th>Aspekt</th><th style="text-align:right;">Nárůst</th></tr></thead>
+      <tbody>${top.map(t => `<tr><td>${t.label}</td><td class="num">${growthDeltaHtml(t.jul, t.may, goodDirection)}</td></tr>`).join('')}</tbody>
+    </table>` : `<p class="empty-hint">Žádný aspekt nemá dostatek dat pro spolehlivé srovnání.</p>`;
+}
+function renderDashboardTrendingNeg(containerId) { renderDashboardTrendList(containerId, 'negative', 'down'); }
+function renderDashboardTrendingPos(containerId) { renderDashboardTrendList(containerId, 'positive', 'up'); }
+
+function renderDashboardPicker() {
+  const el = document.getElementById('dashboard-widget-picker');
+  const selected = new Set(USER_SETTINGS.dashboardWidgets);
+  el.innerHTML = Object.entries(DASHBOARD_WIDGETS).map(([key, w]) =>
+    `<button class="cat-filter-pill${selected.has(key) ? ' active' : ''}" data-widget-key="${key}">${w.label}</button>`
+  ).join('');
+  el.querySelectorAll('.cat-filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => btn.classList.toggle('active'));
+  });
+}
+
+function renderDashboardWidgets() {
+  const container = document.getElementById('dashboard-widgets-container');
+  const keys = USER_SETTINGS.dashboardWidgets.filter(k => DASHBOARD_WIDGETS[k]);
+  if (!keys.length) {
+    container.innerHTML = `<div class="card"><p class="empty-hint">Zatím nemáte vybrané žádné bloky — vyberte je výše a klikněte na „Uložit a zobrazit".</p></div>`;
+    return;
+  }
+  container.innerHTML = keys.map(key => `
+    <div class="card">
+      <h2>${DASHBOARD_WIDGETS[key].label}</h2>
+      <div id="dash-widget-${key}"></div>
+    </div>`).join('');
+  keys.forEach(key => DASHBOARD_WIDGETS[key].render(`dash-widget-${key}`));
+}
+
+document.getElementById('dashboard-apply').addEventListener('click', () => {
+  const keys = Array.from(document.querySelectorAll('#dashboard-widget-picker .cat-filter-pill.active')).map(b => b.dataset.widgetKey);
+  saveSettings({ dashboardWidgets: keys });
+  renderDashboardWidgets();
+});
+renderDashboardPicker();
+
 /* ---------- load ---------- */
 let EXAMPLES = null;
 let TAG_SENTIMENT = null;
@@ -3558,6 +3856,8 @@ Promise.all([
   KEYWORDS = keywordsData;
   document.getElementById('meta-mentions').textContent = SENT.meta.total_mentions.toLocaleString('cs-CZ');
   document.getElementById('meta-tags').textContent = DATA.total_tags;
+  document.querySelectorAll('.verified-banner .verified-seg-btn').forEach(b =>
+    b.classList.toggle('active', (b.dataset.verified === 'true') === VERIFIED_ONLY));
   renderChart();
   renderTable();
   initMentionsFilters();
@@ -3591,6 +3891,7 @@ function renderAllForGlobalRange() {
   renderKeywords();
   mentionsPage = 0;
   renderMentionsTable();
+  renderDashboardWidgets();
 }
 
 function onGlobalRangeChange() {
@@ -3604,10 +3905,10 @@ function onGlobalRangeChange() {
 document.getElementById('global-date-from').addEventListener('change', onGlobalRangeChange);
 document.getElementById('global-date-to').addEventListener('change', onGlobalRangeChange);
 
-document.querySelectorAll('.verified-seg-btn').forEach(btn => {
+document.querySelectorAll('.verified-banner .verified-seg-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     VERIFIED_ONLY = btn.dataset.verified === 'true';
-    document.querySelectorAll('.verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.verified-banner .verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
     renderAllForGlobalRange();
   });
 });
