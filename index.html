@@ -573,6 +573,7 @@
   }
   .issue-row:hover { background: var(--hover-wash); }
   .issue-row td { padding: 9px 10px; font-size: 13px; }
+  .trend-issue-tr.selected { background: var(--series-1-soft); }
   .issue-detail {
     display: none;
     padding: 12px 16px 18px;
@@ -1643,7 +1644,7 @@
   <div class="tab-panel" id="tab-issues-trend">
     <div class="card">
       <h2>Top issues — vývoj v čase</h2>
-      <p class="sub">15 nejobjemnějších issue klastrů (napříč měsíci) · klikni na řádek pro denní rozpad zmínek</p>
+      <p class="sub" id="issues-trend-sub">Issue klastry rozdělené po kategoriích · klikni na řádek pro denní rozpad zmínek</p>
       <div class="legend">
         <span><span class="swatch" style="background:var(--seq-100)"></span>2026-05</span>
         <span><span class="swatch" style="background:var(--series-1)"></span>2026-06</span>
@@ -2507,32 +2508,72 @@ function renderMiniLineChart(values, months) {
 
 function renderIssuesTrendList() {
   const el = document.getElementById('issues-trend-list');
-  el.innerHTML = '';
   const months = monthsInGlobalRange();
   const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
+  const [mayLbl, junLbl, julLbl] = ALL_MONTHS.map(m => MONTH_NAMES_CZ[m] || m);
+
   const withTotals = ISSUES_TREND.top_issues.map(issue => ({
     issue,
     filteredTotal: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0)
-  })).filter(x => x.filteredTotal > 0).sort((a, b) => b.filteredTotal - a.filteredTotal);
+  })).filter(x => x.filteredTotal > 0);
+
+  const byCategory = {};
   withTotals.forEach(({ issue, filteredTotal }) => {
-    const key = issue.aspect + '::' + issue.cluster;
-    const row = document.createElement('div');
-    row.className = 'trend-issue-row' + (selectedIssueKey === key ? ' selected' : '');
-    const bars = renderMiniLineChart(months.map(m => issue[monthsKey][m] || 0), months);
-    row.innerHTML = `
-      <div class="trend-issue-label">${issue.label}<span class="aspect-tag">${issue.aspect_label}</span></div>
-      <div class="mini-bars">${bars}</div>
-      <div class="trend-issue-total">${filteredTotal}</div>
-    `;
-    row.addEventListener('mousemove', e => showTooltip(e,
-      `${issue.label} — ` + months.map(m => `${m}: ${issue[monthsKey][m] || 0}`).join(' · ')));
-    row.addEventListener('mouseleave', hideTooltip);
-    row.addEventListener('click', () => {
+    (byCategory[issue.category] = byCategory[issue.category] || []).push({ issue, filteredTotal });
+  });
+  Object.values(byCategory).forEach(rows => rows.sort((a, b) => b.filteredTotal - a.filteredTotal));
+
+  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
+  Object.keys(byCategory).forEach(cat => { if (!categoryOrder.includes(cat)) categoryOrder.push(cat); });
+
+  document.getElementById('issues-trend-sub').textContent =
+    `${withTotals.length} issue klastrů rozdělených po kategoriích · ${mayLbl} → ${junLbl} → ${julLbl} · klikni na řádek pro denní rozpad zmínek`;
+
+  el.innerHTML = categoryOrder.map(cat => {
+    const rows = byCategory[cat];
+    const rowsHtml = rows.map(({ issue }) => {
+      const key = issue.aspect + '::' + issue.cluster;
+      const mayV = issue[monthsKey]['2026-05'] || 0;
+      const junV = issue[monthsKey]['2026-06'] || 0;
+      const julV = issue[monthsKey]['2026-07'] || 0;
+      const chart = renderMiniLineChart(months.map(m => issue[monthsKey][m] || 0), months);
+      return `
+        <tr class="issue-row trend-issue-tr${selectedIssueKey === key ? ' selected' : ''}" data-issue-key="${key}">
+          <td>${issue.label}<span class="aspect-tag">${issue.aspect_label}</span></td>
+          <td class="num">${mayV}</td>
+          <td class="num">${junV}</td>
+          <td class="num">${julV}</td>
+          <td class="num">${growthDeltaHtml(julV, mayV, 'down')}</td>
+          <td style="width:70px;">${chart}</td>
+        </tr>`;
+    }).join('');
+    return `
+      <div class="card">
+        <h2>${cat}</h2>
+        <p class="sub">${rows.length} issue klastrů v této kategorii</p>
+        <table class="trending-table">
+          <thead>
+            <tr>
+              <th>Issue klastr</th>
+              <th style="text-align:right;">${mayLbl}</th>
+              <th style="text-align:right;">${junLbl}</th>
+              <th style="text-align:right;">${julLbl}</th>
+              <th style="text-align:right;">Odchylka</th>
+              <th>Graf</th>
+            </tr>
+          </thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+  }).join('') || `<div class="card"><p class="empty-hint">Žádné issue klastry neodpovídají aktuálnímu filtru.</p></div>`;
+
+  el.querySelectorAll('.trend-issue-tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const key = tr.dataset.issueKey;
       selectedIssueKey = (selectedIssueKey === key) ? null : key;
       renderIssuesTrendList();
       renderIssuesDaily();
     });
-    el.appendChild(row);
   });
 }
 
