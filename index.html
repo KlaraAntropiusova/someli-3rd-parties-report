@@ -700,6 +700,19 @@
     flex: 0 0 auto;
   }
   .modal-close-btn:hover { background: var(--hover-wash); color: var(--text-primary); }
+  #modal-keywords {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  #modal-keywords .modal-keywords-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+  }
+  #modal-keywords .chips { margin: 0; }
   .modal-toolbar {
     display: flex;
     gap: 8px;
@@ -1372,8 +1385,8 @@
   <nav class="tabs" aria-label="Navigace reportu">
     <p class="nav-section-label" style="padding-top:4px;">Přehled</p>
     <button class="tab-btn active" data-tab="tab-overview" aria-current="page">Celkový přehled</button>
-    <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
     <button class="tab-btn" data-tab="tab-monthly-overview">Měsíční shrnutí</button>
+    <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
 
     <p class="nav-section-label">Sentiment &amp; problémy</p>
     <button class="tab-btn" data-tab="tab-sentiment">Sentiment podle aspektu</button>
@@ -1947,6 +1960,7 @@
       </div>
       <button id="modal-close" class="modal-close-btn" aria-label="Zavřít">&times;</button>
     </div>
+    <div id="modal-keywords" style="display:none;"></div>
     <div class="modal-toolbar">
       <input id="modal-search" type="text" placeholder="Hledat v textu zmínek…">
       <select id="modal-sort">
@@ -2173,6 +2187,32 @@ function hideDetailPopover() { detailPopover.classList.remove('visible'); }
 /* ---------- detail modal (click on a bar segment) ---------- */
 let MODAL_STATE = { examples: [], title: '' };
 
+const MODAL_STOPWORDS = new Set([
+  'the','a','an','and','or','but','is','are','was','were','be','been','being','to','of','in','on','at','for',
+  'with','as','by','that','this','it','its','from','not','no','so','if','then','than','too','very','just',
+  'about','into','over','after','before','out','up','down','off','again','further','once','have','has','had',
+  'do','does','did','doing','you','he','she','we','they','them','his','her','their','our','your','my','me',
+  'him','us','what','which','who','whom','when','where','why','how','all','any','both','each','few','more',
+  'most','other','some','such','only','own','same','can','will','would','should','could','may','might','must',
+  'shall','there','here','also','still','even','one','two','get','got','like','really','because','been','said',
+  'im','ive','dont','didnt','doesnt','thats','theyre','youre','were','being','while','around','back','still',
+  'quote','click','expand','originally','posted',
+]);
+
+function extractKeywordsFromExamples(examples, limit) {
+  const counts = {};
+  examples.forEach(e => {
+    const words = (e.text || '').toLowerCase().match(/[a-zà-ž]{3,}/g) || [];
+    const seen = new Set();
+    words.forEach(w => {
+      if (MODAL_STOPWORDS.has(w) || seen.has(w)) return;
+      seen.add(w);
+      counts[w] = (counts[w] || 0) + 1;
+    });
+  });
+  return Object.entries(counts).filter(([, c]) => c > 1).sort((a, b) => b[1] - a[1]).slice(0, limit || 12);
+}
+
 function renderModalList() {
   const search = document.getElementById('modal-search').value.trim().toLowerCase();
   const sort = document.getElementById('modal-sort').value;
@@ -2193,11 +2233,23 @@ function renderModalList() {
     : `<p class="empty">Žádné zmínky neodpovídají hledání.</p>`;
 }
 
-function openDetailModal(title, examples) {
+function openDetailModal(title, examples, showKeywords) {
   MODAL_STATE = { examples: filterExamplesByRange(examples), title };
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-search').value = '';
   document.getElementById('modal-sort').value = 'date-desc';
+
+  const kwEl = document.getElementById('modal-keywords');
+  const keywords = showKeywords ? extractKeywordsFromExamples(MODAL_STATE.examples, 14) : [];
+  if (keywords.length) {
+    kwEl.style.display = '';
+    kwEl.innerHTML = `<p class="modal-keywords-label">Nejčastější slova v těchto zmínkách</p>
+      <div class="chips">${keywords.map(([w, c]) => `<span class="chip">${w} <span class="g3-count">(${c})</span></span>`).join('')}</div>`;
+  } else {
+    kwEl.style.display = 'none';
+    kwEl.innerHTML = '';
+  }
+
   renderModalList();
   document.getElementById('detail-modal').classList.add('open');
 }
@@ -2224,6 +2276,12 @@ function openPainPointMentions(item, exampleType, key) {
   const value = painPointValue(item);
   const valueLabel = value === null ? '–' : value.toFixed(2).replace('.', ',');
   openDetailModal(`${item.label} — index ${valueLabel} (${item.positive} pozitivních, ${item.negative} negativních)`, gaugePainPointExamples(exampleType, key));
+}
+
+function openTrendDetail(aspectKey, label, category) {
+  const bucket = EXAMPLES && EXAMPLES.aspects && EXAMPLES.aspects[aspectKey];
+  const examples = bucket ? (bucket.negative || []) : [];
+  openDetailModal(`${label} — rostoucí negativita (${category})`, examples, true);
 }
 
 /* ---------- tabs ---------- */
@@ -3203,7 +3261,7 @@ function computeSentimentTrendByCategory(field) {
     if (mMay < 10) return;
     const delta = pctDelta(mJul, mMay);
     if (delta === null || delta <= 0) return;
-    (byCategory[a.category] = byCategory[a.category] || []).push({ label: a.label, may: mMay, jun: mJun, jul: mJul, delta });
+    (byCategory[a.category] = byCategory[a.category] || []).push({ label: a.label, key: a.aspect, may: mMay, jun: mJun, jul: mJul, delta });
   });
   Object.values(byCategory).forEach(rows => rows.sort((a, b) => b.delta - a.delta));
   return byCategory;
@@ -3260,9 +3318,9 @@ function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGo
     const rowsHtml = rows.map(r => `
       <tr>
         <td>${r.label}</td>
-        <td class="num">${r.may}</td>
-        <td class="num">${r.jun}</td>
-        <td class="num">${r.jul}</td>
+        <td class="num" style="text-align:left;">${r.may}</td>
+        <td class="num" style="text-align:left;">${r.jun}</td>
+        <td class="num" style="text-align:left;">${r.jul}</td>
         <td class="num">${growthDeltaHtml(r.jul, r.may, deltaGoodDirection)}</td>
       </tr>`).join('');
     return `
@@ -3273,9 +3331,9 @@ function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGo
           <thead>
             <tr>
               <th>Aspekt</th>
-              <th style="text-align:right;">${may}</th>
-              <th style="text-align:right;">${jun}</th>
-              <th style="text-align:right;">${jul}</th>
+              <th style="text-align:left;">${may}</th>
+              <th style="text-align:left;">${jun}</th>
+              <th style="text-align:left;">${jul}</th>
               <th style="text-align:right;">Nárůst</th>
             </tr>
           </thead>
@@ -3986,7 +4044,8 @@ function renderMonthlyRecommendations() {
 
   topNegAll.slice(0, 3).forEach(t => {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
-    html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span></p>`;
+    html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
+      <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button></p>`;
   });
   if (!topNegAll.length) html += '';
 
@@ -4012,7 +4071,11 @@ function renderMonthlyRecommendations() {
   });
 
   if (!html) html = `<p>Nedostatek dat pro spolehlivá strategická doporučení v tomto období.</p>`;
-  document.getElementById('monthly-ov-recommendations').innerHTML = html;
+  const recoEl = document.getElementById('monthly-ov-recommendations');
+  recoEl.innerHTML = html;
+  recoEl.querySelectorAll('.trend-detail-btn').forEach(btn => {
+    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category));
+  });
 }
 
 function renderMonthlyOverview() {
