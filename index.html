@@ -776,8 +776,10 @@
   .matrix-table thead th { top: 0; z-index: 2; font-weight: 700; color: var(--text-primary); }
   .matrix-table thead th.row-head { z-index: 3; }
   .matrix-table td.row-head { font-weight: 600; }
-  .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; }
+  .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; transition: outline-color 0.1s ease; }
+  .matrix-table td.cell:hover { outline: 2px solid var(--series-1); outline-offset: -2px; }
   .matrix-table td.cell.zero { color: var(--text-muted); font-weight: 400; background: transparent !important; }
+  .matrix-table tbody tr:hover td.row-head { background: var(--hover-wash); }
   .matrix-table td.total-cell, .matrix-table th.total-head { font-weight: 700; color: var(--text-primary); background: var(--page-plane); position: sticky; right: 0; }
   .matrix-table th.total-head { z-index: 2; }
   .matrix-table td.total-cell { z-index: 1; }
@@ -3288,10 +3290,6 @@ function lerpColor(hex1, hex2, t) {
   const r = Math.round(r1 + (r2 - r1) * t), g = Math.round(g1 + (g2 - g1) * t), b = Math.round(b1 + (b2 - b1) * t);
   return `rgb(${r},${g},${b})`;
 }
-function parseRgbString(s) {
-  const m = s.match(/rgb\((\d+),(\d+),(\d+)\)/);
-  return m ? [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)] : [0, 0, 0];
-}
 // discrete quantile-based levels (GitHub-heatmap style) read much more clearly than
 // a smooth gradient, which flattens differences when most values cluster together.
 // Anchored to live theme variables (surface -> accent) instead of a fixed hex pair,
@@ -3305,7 +3303,14 @@ function getCssVarRgb(varName) {
 }
 function getHeatmapLevelColors() {
   const low = getCssVarRgb('--surface-2');
-  const high = getCssVarRgb('--series-1');
+  const textColor = getCssVarRgb('--text-primary');
+  const rawHigh = getCssVarRgb('--series-1');
+  // The numbers all use one fixed color (--text-primary), so the hottest cell must
+  // still contrast with it — back the accent off toward the low anchor until it
+  // does, rather than risking unreadable text on some theme/accent combinations.
+  let cap = 1;
+  while (cap > 0.05 && contrastRatio(lerpRgb(low, rawHigh, cap), textColor) < 4.5) cap -= 0.05;
+  const high = lerpRgb(low, rawHigh, cap);
   return [0, 0.32, 0.58, 0.8, 1.0].map(t => rgbStr(lerpRgb(low, high, t)));
 }
 function quantileThresholds(values) {
@@ -3354,9 +3359,7 @@ function renderSourceCategoryMatrix() {
       const v = matrix[s][c];
       if (!v) return `<td class="cell zero" data-source="${s}" data-category="${c}">0</td>`;
       const color = colorForLevel(v, thresholds, heatmapColors);
-      const rgb = parseRgbString(color);
-      const textColor = contrastRatio(rgb, [0, 0, 0]) >= contrastRatio(rgb, [255, 255, 255]) ? '#000000' : '#ffffff';
-      return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color};color:${textColor};">${v}</td>`;
+      return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color};">${v}</td>`;
     }).join('');
     return `<tr><td class="row-head">${s}</td>${cells}<td class="total-cell">${rowTotal}</td></tr>`;
   }).join('');
