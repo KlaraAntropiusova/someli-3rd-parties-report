@@ -2105,7 +2105,7 @@ document.getElementById('access-gate-form').addEventListener('submit', async e =
 /* ---------- user settings (theme, accent, defaults) — persisted per-browser ---------- */
 const SETTINGS_KEY = 'someli_user_settings';
 function loadSettings() {
-  const defaults = { theme: 'dark', accent: 'terracotta', layoutColor: 'cream', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
+  const defaults = { theme: 'light', accent: 'terracotta', layoutColor: 'cream', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
   catch (e) { return defaults; }
 }
