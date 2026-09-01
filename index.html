@@ -1575,9 +1575,9 @@
           <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
         </div>
         <div class="view-toggle">
-          <button id="btn-sort-negative" class="active">Nejvíc negativních</button>
+          <button id="btn-sort-negative">Nejvíc negativních</button>
           <button id="btn-sort-positive">Nejvíc pozitivních</button>
-          <button id="btn-sort-total">Podle objemu</button>
+          <button id="btn-sort-total" class="active">Podle objemu</button>
         </div>
       </div>
       <div id="sentiment-chart"></div>
@@ -2265,7 +2265,7 @@ function renderSentStats() {
   `;
 }
 
-let sentSortMode = 'negative'; // 'negative' | 'positive' | 'total'
+let sentSortMode = 'total'; // 'negative' | 'positive' | 'total'
 const SENT_SORT_LABEL = { negative: 'počtu negativních zmínek', positive: 'počtu pozitivních zmínek', total: 'objemu zmínek' };
 
 function renderSentimentChart() {
