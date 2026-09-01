@@ -3294,34 +3294,46 @@ function parseRgbString(s) {
 }
 // discrete quantile-based levels (GitHub-heatmap style) read much more clearly than
 // a smooth gradient, which flattens differences when most values cluster together.
-// Warm neutral umber (not pos/neg/brand) — this matrix is pure volume, not sentiment,
-// so it shouldn't borrow a color that implies a value judgement that isn't there.
-const HEATMAP_LEVEL_COLORS = [0, 0.32, 0.58, 0.8, 1.0].map(t => lerpColor('#f3e0c4', '#5b3a1e', t));
+// Anchored to live theme variables (surface -> accent) instead of a fixed hex pair,
+// so the heatmap always matches whatever theme/accent/layout color is active —
+// "high intensity" reuses the same accent color the rest of the UI uses for emphasis.
+function getCssVarRgb(varName) {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  if (raw.startsWith('#')) return hexToRgbArr(raw);
+  const m = raw.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  return m ? [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)] : [0, 0, 0];
+}
+function getHeatmapLevelColors() {
+  const low = getCssVarRgb('--surface-2');
+  const high = getCssVarRgb('--series-1');
+  return [0, 0.32, 0.58, 0.8, 1.0].map(t => rgbStr(lerpRgb(low, high, t)));
+}
 function quantileThresholds(values) {
   const nonZero = values.filter(v => v > 0).slice().sort((a, b) => a - b);
   if (!nonZero.length) return [1, 1, 1];
   const at = p => nonZero[Math.min(nonZero.length - 1, Math.floor(p * (nonZero.length - 1)))];
   return [at(0.25), at(0.5), at(0.75)];
 }
-function colorForLevel(v, thresholds) {
-  if (!v) return HEATMAP_LEVEL_COLORS[0];
-  if (v <= thresholds[0]) return HEATMAP_LEVEL_COLORS[1];
-  if (v <= thresholds[1]) return HEATMAP_LEVEL_COLORS[2];
-  if (v <= thresholds[2]) return HEATMAP_LEVEL_COLORS[3];
-  return HEATMAP_LEVEL_COLORS[4];
+function colorForLevel(v, thresholds, colors) {
+  if (!v) return colors[0];
+  if (v <= thresholds[0]) return colors[1];
+  if (v <= thresholds[1]) return colors[2];
+  if (v <= thresholds[2]) return colors[3];
+  return colors[4];
 }
 
 /* ---------- source x category matrix ---------- */
 const HEATMAP_LEGEND_LABELS = ['Nízká', 'Nižší střední', 'Vyšší střední', 'Nejvyšší'];
-function renderMatrixLegend() {
+function renderMatrixLegend(colors) {
   const swatches = HEATMAP_LEGEND_LABELS.map((label, i) =>
-    `<span><span class="swatch" style="background:${HEATMAP_LEVEL_COLORS[i + 1]}"></span>${label}</span>`).join('');
+    `<span><span class="swatch" style="background:${colors[i + 1]}"></span>${label}</span>`).join('');
   document.getElementById('matrix-legend').innerHTML =
     `${swatches}<span><span class="swatch" style="background:transparent;border:1px solid var(--border);"></span>bez zmínek</span>`;
 }
 
 function renderSourceCategoryMatrix() {
-  renderMatrixLegend();
+  const heatmapColors = getHeatmapLevelColors();
+  renderMatrixLegend(heatmapColors);
   const categories = DATA.group2_summary.map(g => g.name);
   const sourceList = SOURCES.sources.map(s => s.source);
   const matrix = {};
@@ -3341,7 +3353,7 @@ function renderSourceCategoryMatrix() {
     const cells = categories.map(c => {
       const v = matrix[s][c];
       if (!v) return `<td class="cell zero" data-source="${s}" data-category="${c}">0</td>`;
-      const color = colorForLevel(v, thresholds);
+      const color = colorForLevel(v, thresholds, heatmapColors);
       const rgb = parseRgbString(color);
       const textColor = contrastRatio(rgb, [0, 0, 0]) >= contrastRatio(rgb, [255, 255, 255]) ? '#000000' : '#ffffff';
       return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color};color:${textColor};">${v}</td>`;
@@ -4058,6 +4070,10 @@ function initMentionsFilters() {
 }
 
 /* ---------- settings page (theme, accent, defaults) ---------- */
+function refreshMatrixIfLoaded() {
+  if (DATA && SOURCES && MENTIONS) renderSourceCategoryMatrix();
+}
+
 function initSettingsUI() {
   document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.themeChoice === USER_SETTINGS.theme);
@@ -4065,6 +4081,7 @@ function initSettingsUI() {
       saveSettings({ theme: btn.dataset.themeChoice });
       applyFullLayout();
       document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+      refreshMatrixIfLoaded();
     });
   });
 
@@ -4077,6 +4094,7 @@ function initSettingsUI() {
       saveSettings({ layoutColor: btn.dataset.layoutKey });
       applyFullLayout();
       layoutColorRow.querySelectorAll('.accent-swatch-btn').forEach(b => b.classList.toggle('active', b === btn));
+      refreshMatrixIfLoaded();
     });
   });
 
@@ -4097,6 +4115,7 @@ function initSettingsUI() {
       applyAccent(btn.dataset.accentKey);
       saveSettings({ accent: btn.dataset.accentKey });
       accentRow.querySelectorAll('.accent-swatch-btn').forEach(b => b.classList.toggle('active', b === btn));
+      refreshMatrixIfLoaded();
     });
   });
 
