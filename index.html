@@ -1849,6 +1849,18 @@
     <div class="card">
       <h2>Klíčová slova</h2>
       <p class="sub">Nejčastější slova v textech zmínek (bez výplňových slov) · klikni pro zobrazení konkrétních zmínek</p>
+      <div class="toolbar" style="margin-bottom:14px;">
+        <div class="filter-field" style="min-width:220px;">
+          <label>Hledat</label>
+          <input id="kw-search" type="text" placeholder="klíčové slovo nebo fráze…">
+        </div>
+        <div class="view-toggle">
+          <button id="kw-sort-count" class="active">Podle objemu</button>
+          <button id="kw-sort-negative">Nejvíc negativní</button>
+          <button id="kw-sort-positive">Nejvíc pozitivní</button>
+          <button id="kw-sort-alpha">Abecedně</button>
+        </div>
+      </div>
       <div class="legend">
         <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
         <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
@@ -3392,12 +3404,38 @@ function showKeywordMentions(word) {
   openDetailModal(`"${word}" — zmínky obsahující toto slovo`, examples);
 }
 
+let kwSortMode = 'count'; // 'count' | 'negative' | 'positive' | 'alpha'
+let kwSearchTerm = '';
+
+function initKeywordsControls() {
+  document.getElementById('kw-search').addEventListener('input', e => {
+    kwSearchTerm = e.target.value.trim().toLowerCase();
+    renderKeywords();
+  });
+  [['kw-sort-count', 'count'], ['kw-sort-negative', 'negative'], ['kw-sort-positive', 'positive'], ['kw-sort-alpha', 'alpha']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      kwSortMode = mode;
+      document.querySelectorAll('#kw-sort-count, #kw-sort-negative, #kw-sort-positive, #kw-sort-alpha').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderKeywords();
+    });
+  });
+}
+
 function renderKeywords() {
   const countKey = VERIFIED_ONLY ? 'v_count' : 'count';
   const posKey = VERIFIED_ONLY ? 'v_positive' : 'positive';
   const neuKey = VERIFIED_ONLY ? 'v_neutral' : 'neutral';
   const negKey = VERIFIED_ONLY ? 'v_negative' : 'negative';
-  const words = KEYWORDS.words.filter(w => w[countKey] > 0).slice().sort((a, b) => b[countKey] - a[countKey]).slice(0, 30);
+  const sorters = {
+    count: (a, b) => b[countKey] - a[countKey],
+    negative: (a, b) => (b[negKey] / b[countKey]) - (a[negKey] / a[countKey]),
+    positive: (a, b) => (b[posKey] / b[countKey]) - (a[posKey] / a[countKey]),
+    alpha: (a, b) => a.word.localeCompare(b.word, 'cs'),
+  };
+  let words = KEYWORDS.words.filter(w => w[countKey] > 0);
+  if (kwSearchTerm) words = words.filter(w => w.word.toLowerCase().includes(kwSearchTerm));
+  words = words.slice().sort(sorters[kwSortMode] || sorters.count).slice(0, 40);
   const max = Math.max(1, ...words.map(w => w[countKey]));
   const el = document.getElementById('keywords-bar');
   el.innerHTML = words.map(w => {
@@ -3423,7 +3461,9 @@ function renderKeywords() {
   });
 
   const bigramCountKey = VERIFIED_ONLY ? 'v_count' : 'count';
-  const bigrams = KEYWORDS.bigrams.filter(b => b[bigramCountKey] > 0).slice().sort((a, b) => b[bigramCountKey] - a[bigramCountKey]);
+  let bigrams = KEYWORDS.bigrams.filter(b => b[bigramCountKey] > 0);
+  if (kwSearchTerm) bigrams = bigrams.filter(b => b.phrase.toLowerCase().includes(kwSearchTerm));
+  bigrams = bigrams.slice().sort((a, b) => b[bigramCountKey] - a[bigramCountKey]);
   document.getElementById('keywords-bigrams').innerHTML = bigrams.map(b =>
     `<span class="chip bigram-chip" data-phrase="${b.phrase}">${b.phrase} <span class="g3-count">(${b[bigramCountKey]})</span></span>`
   ).join('') || `<p class="empty-hint">Žádné fráze nesplňují zadaný filtr.</p>`;
@@ -4281,6 +4321,7 @@ Promise.all([
   initIssuesTrendFilters();
   initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
   initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
+  initKeywordsControls();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
