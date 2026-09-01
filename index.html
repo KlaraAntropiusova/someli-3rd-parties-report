@@ -1803,8 +1803,13 @@
           <button class="verified-seg-btn" data-theme-choice="dark">Tmavý</button>
         </div>
       </div>
+      <div class="filter-field" style="margin-bottom:18px;">
+        <label>Barva motivu (pozadí a karty)</label>
+        <p class="sub" style="margin:4px 0 0;">Určuje odstín pozadí a ploch karet — text a kontrast se automaticky přepočítají tak, aby zůstalo čitelné ve světlém i tmavém motivu.</p>
+        <div class="accent-swatch-row" id="settings-layout-color-row" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;"></div>
+      </div>
       <div class="filter-field">
-        <label>Barva zvýraznění</label>
+        <label>Barva zvýraznění (tlačítka, aktivní záložky)</label>
         <div class="accent-swatch-row" id="settings-accent-row" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;"></div>
       </div>
     </div>
@@ -1861,7 +1866,7 @@
 /* ---------- user settings (theme, accent, defaults) — persisted per-browser ---------- */
 const SETTINGS_KEY = 'someli_user_settings';
 function loadSettings() {
-  const defaults = { theme: 'dark', accent: 'terracotta', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
+  const defaults = { theme: 'dark', accent: 'terracotta', layoutColor: 'cream', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
   catch (e) { return defaults; }
 }
@@ -1883,7 +1888,7 @@ const ACCENT_PRESETS = {
   navy:       { label: 'Námořnická', base: '#2c4f6b' },
   wine:       { label: 'Vínová', base: '#7a2f4a' },
   mustard:    { label: 'Hořčicová', base: '#a8781e' },
-  slate:      { label: 'Břidlicová', base: '#4a5568' },
+  charcoal:   { label: 'Antracitová', base: '#4a5568' },
 };
 
 function applyAccent(key) {
@@ -1899,12 +1904,66 @@ function applyAccent(key) {
   root.setProperty('--on-accent', luminance > 140 ? '#2b211a' : '#fff6e9');
 }
 
+/* ---------- full layout color (page/card/text surfaces) — independent of accent ---------- */
+const LAYOUT_COLOR_PRESETS = {
+  cream: { label: 'Krémová', seed: '#b8916a' },
+  slate: { label: 'Chladná šedá', seed: '#64707c' },
+  mist:  { label: 'Mlžná modrá', seed: '#6f8aa0' },
+  rose:  { label: 'Pudrová růžová', seed: '#ad8383' },
+  sand:  { label: 'Písková', seed: '#a89678' },
+};
+
+function lerpRgb(rgb1, rgb2, t) {
+  return [0, 1, 2].map(i => Math.round(rgb1[i] + (rgb2[i] - rgb1[i]) * t));
+}
+function rgbStr(rgb) { return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; }
+function rgbaStr(rgb, a) { return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`; }
+
+function applyLayoutPalette(seedHex, isDark) {
+  const seed = hexToRgbArr(seedHex);
+  const white = [255, 255, 255], black = [26, 16, 8];
+  const root = document.documentElement.style;
+  if (!isDark) {
+    root.setProperty('--page-plane', rgbStr(lerpRgb(seed, white, 0.78)));
+    root.setProperty('--surface-1', rgbStr(lerpRgb(seed, white, 0.93)));
+    root.setProperty('--surface-2', rgbStr(lerpRgb(seed, white, 0.55)));
+    root.setProperty('--gridline', rgbStr(lerpRgb(seed, white, 0.58)));
+    root.setProperty('--baseline', rgbStr(lerpRgb(seed, black, 0.15)));
+    root.setProperty('--text-primary', rgbStr(lerpRgb(seed, black, 0.85)));
+    root.setProperty('--text-secondary', rgbStr(lerpRgb(seed, black, 0.62)));
+    root.setProperty('--text-muted', rgbStr(lerpRgb(seed, black, 0.40)));
+    const b = lerpRgb(seed, black, 0.55);
+    root.setProperty('--border', rgbaStr(b, 0.18));
+    root.setProperty('--shadow-sm', `0 1px 2px ${rgbaStr(b, 0.16)}`);
+    root.setProperty('--shadow-md', `0 8px 24px ${rgbaStr(b, 0.20)}`);
+  } else {
+    root.setProperty('--page-plane', rgbStr(lerpRgb(seed, black, 0.88)));
+    root.setProperty('--surface-1', rgbStr(lerpRgb(seed, black, 0.76)));
+    root.setProperty('--surface-2', rgbStr(lerpRgb(seed, black, 0.66)));
+    root.setProperty('--gridline', rgbStr(lerpRgb(seed, black, 0.60)));
+    root.setProperty('--baseline', rgbStr(lerpRgb(seed, white, 0.30)));
+    root.setProperty('--text-primary', rgbStr(lerpRgb(seed, white, 0.85)));
+    root.setProperty('--text-secondary', rgbStr(lerpRgb(seed, white, 0.60)));
+    root.setProperty('--text-muted', rgbStr(lerpRgb(seed, white, 0.35)));
+    const b = lerpRgb(seed, white, 0.80);
+    root.setProperty('--border', rgbaStr(b, 0.14));
+    root.setProperty('--shadow-sm', '0 1px 2px rgba(0,0,0,0.35)');
+    root.setProperty('--shadow-md', '0 8px 24px rgba(0,0,0,0.5)');
+  }
+}
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
 }
 
-applyTheme(USER_SETTINGS.theme);
-applyAccent(USER_SETTINGS.accent);
+function applyFullLayout() {
+  applyTheme(USER_SETTINGS.theme);
+  const preset = LAYOUT_COLOR_PRESETS[USER_SETTINGS.layoutColor] || LAYOUT_COLOR_PRESETS.cream;
+  applyLayoutPalette(preset.seed, USER_SETTINGS.theme === 'dark');
+  applyAccent(USER_SETTINGS.accent);
+}
+
+applyFullLayout();
 
 const tooltip = document.getElementById('tooltip');
 let DATA = null;
@@ -3783,9 +3842,21 @@ function initSettingsUI() {
   document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.themeChoice === USER_SETTINGS.theme);
     btn.addEventListener('click', () => {
-      applyTheme(btn.dataset.themeChoice);
       saveSettings({ theme: btn.dataset.themeChoice });
+      applyFullLayout();
       document.querySelectorAll('#settings-theme-toggle .verified-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
+
+  const layoutColorRow = document.getElementById('settings-layout-color-row');
+  layoutColorRow.innerHTML = Object.entries(LAYOUT_COLOR_PRESETS).map(([key, p]) =>
+    `<button class="accent-swatch-btn${USER_SETTINGS.layoutColor === key ? ' active' : ''}" data-layout-key="${key}" style="background:${p.seed};" title="${p.label}"></button>`
+  ).join('');
+  layoutColorRow.querySelectorAll('.accent-swatch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveSettings({ layoutColor: btn.dataset.layoutKey });
+      applyFullLayout();
+      layoutColorRow.querySelectorAll('.accent-swatch-btn').forEach(b => b.classList.toggle('active', b === btn));
     });
   });
 
