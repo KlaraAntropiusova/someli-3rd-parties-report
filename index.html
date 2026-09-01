@@ -767,13 +767,20 @@
   .pp-toggle-btn:hover { background: var(--hover-wash); color: var(--text-primary); }
 
   /* source x category matrix */
-  .table-scroll { overflow-x: auto; }
-  .matrix-table { border-collapse: collapse; font-size: 12px; white-space: nowrap; }
-  .matrix-table th, .matrix-table td { padding: 7px 10px; text-align: center; border: 1px solid var(--border); }
-  .matrix-table th.row-head, .matrix-table td.row-head { text-align: left; position: sticky; left: 0; background: var(--surface-1); z-index: 1; }
+  .table-scroll { overflow-x: auto; max-height: 640px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .matrix-table { border-collapse: collapse; font-size: 13px; white-space: nowrap; width: 100%; }
+  .matrix-table th, .matrix-table td { padding: 9px 12px; text-align: center; border: 1px solid var(--border); min-width: 84px; }
+  .matrix-table th.row-head, .matrix-table td.row-head { text-align: left; min-width: 140px; }
+  .matrix-table th.row-head, .matrix-table td.row-head, .matrix-table thead th { position: sticky; background: var(--surface-1); z-index: 1; }
+  .matrix-table th.row-head, .matrix-table td.row-head { left: 0; }
+  .matrix-table thead th { top: 0; z-index: 2; font-weight: 700; color: var(--text-primary); }
+  .matrix-table thead th.row-head { z-index: 3; }
+  .matrix-table td.row-head { font-weight: 600; }
   .matrix-table td.cell { cursor: pointer; font-variant-numeric: tabular-nums; color: var(--text-primary); font-weight: 600; }
   .matrix-table td.cell.zero { color: var(--text-muted); font-weight: 400; background: transparent !important; }
-  .matrix-table td.total-cell { font-weight: 700; color: var(--text-primary); background: var(--page-plane) !important; }
+  .matrix-table td.total-cell, .matrix-table th.total-head { font-weight: 700; color: var(--text-primary); background: var(--page-plane); position: sticky; right: 0; }
+  .matrix-table th.total-head { z-index: 2; }
+  .matrix-table td.total-cell { z-index: 1; }
 
   /* keywords */
   .keyword-row {
@@ -1830,6 +1837,7 @@
     <div class="card">
       <h2>Zdroj × kategorie</h2>
       <p class="sub">Počet zmínek podle zdroje a kategorie · barva = intenzita v rámci celé matice · klikni na buňku pro zmínky</p>
+      <div class="legend" id="matrix-legend"></div>
       <div class="table-scroll" id="matrix-table"></div>
     </div>
   </div>
@@ -3300,7 +3308,16 @@ function colorForLevel(v, thresholds) {
 }
 
 /* ---------- source x category matrix ---------- */
+const HEATMAP_LEGEND_LABELS = ['Nízká', 'Nižší střední', 'Vyšší střední', 'Nejvyšší'];
+function renderMatrixLegend() {
+  const swatches = HEATMAP_LEGEND_LABELS.map((label, i) =>
+    `<span><span class="swatch" style="background:${HEATMAP_LEVEL_COLORS[i + 1]}"></span>${label}</span>`).join('');
+  document.getElementById('matrix-legend').innerHTML =
+    `${swatches}<span><span class="swatch" style="background:transparent;border:1px solid var(--border);"></span>bez zmínek</span>`;
+}
+
 function renderSourceCategoryMatrix() {
+  renderMatrixLegend();
   const categories = DATA.group2_summary.map(g => g.name);
   const sourceList = SOURCES.sources.map(s => s.source);
   const matrix = {};
@@ -3314,7 +3331,7 @@ function renderSourceCategoryMatrix() {
   });
   const thresholds = quantileThresholds(sourceList.flatMap(s => categories.map(c => matrix[s][c])));
 
-  const header = `<tr><th class="row-head">Zdroj</th>${categories.map(c => `<th>${c}</th>`).join('')}<th>Celkem</th></tr>`;
+  const header = `<tr><th class="row-head">Zdroj</th>${categories.map(c => `<th>${c}</th>`).join('')}<th class="total-head">Celkem</th></tr>`;
   const rows = sourceList.map(s => {
     const rowTotal = categories.reduce((sum, c) => sum + matrix[s][c], 0);
     const cells = categories.map(c => {
