@@ -1115,6 +1115,13 @@
     padding: 1px 9px;
     margin-left: 4px;
   }
+  .exec-summary-body .reco-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .exec-summary-body .reco-sub b { color: var(--text-secondary); }
   .reco-item {
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -4015,6 +4022,30 @@ function renderMonthlyStats() {
   `;
 }
 
+function getAspectTopIssueSummary(aspectKey, months) {
+  const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
+  const candidates = SENT.issues.filter(i => i.aspect === aspectKey && months.includes(i.month.split('_').slice(0, 2).join('-')));
+  if (!candidates.length) return null;
+  return candidates.slice().sort((a, b) => b[countField] - a[countField])[0];
+}
+
+function getAspectTopDrivingTag(category, aspectLabel, field) {
+  const monthKey = (VERIFIED_ONLY ? 'v_' : '') + field;
+  const aspectGroup = (DATA.hierarchy[category] || []).find(g => g.name === aspectLabel);
+  if (!aspectGroup) return null;
+  const tagNames = new Set(aspectGroup.tags);
+  let best = null;
+  TAG_SENTIMENT.tags.filter(t => tagNames.has(t.name)).forEach(t => {
+    const mayV = (t.monthly['2026-05'] || {})[monthKey] || 0;
+    const julV = (t.monthly['2026-07'] || {})[monthKey] || 0;
+    if (mayV < 3) return;
+    const delta = julV - mayV;
+    if (delta <= 0) return;
+    if (!best || delta > best.delta) best = { name: t.name, mayV, julV, delta };
+  });
+  return best;
+}
+
 function computeSourceNegativityShares() {
   const months = monthsInGlobalRange();
   const rangeMentions = MENTIONS.mentions.filter(m => {
@@ -4041,16 +4072,25 @@ function renderMonthlyRecommendations() {
   const sources = computeSourceNegativityShares();
 
   let html = '';
+  const activeMonths = monthsInGlobalRange();
 
   topNegAll.slice(0, 3).forEach(t => {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
+    const topIssue = getAspectTopIssueSummary(t.key, activeMonths);
+    const topTag = getAspectTopDrivingTag(t.category, t.label, 'negative');
+    let extra = `<span class="reco-sub"><b>Aspekt:</b> ${t.label}${topTag ? ` · <b>Nejvíc se to týká tagu:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
     html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
-      <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button></p>`;
+      <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
   if (!topNegAll.length) html += '';
 
   recurring.slice(0, 2).forEach(r => {
-    html += `<p class="risk">Přetrvávající problém: <b>${r.issue.label}</b> se objevuje ${r.activeMonths.length} měsíce po sobě ve vybraném období — nejde o jednorázový výkyv, ale o opakující se téma vyžadující systémové řešení.</p>`;
+    const matchingIssue = SENT.issues.find(i => i.aspect === r.issue.aspect && i.cluster === r.issue.cluster && activeMonths.includes(i.month.split('_').slice(0, 2).join('-')));
+    const topTag = getAspectTopDrivingTag(r.issue.category, r.issue.aspect_label, 'negative');
+    let extra = `<span class="reco-sub"><b>Aspekt:</b> ${r.issue.aspect_label}${topTag ? ` · <b>Tag:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    if (matchingIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${matchingIssue.summary}</span>`;
+    html += `<p class="risk">Přetrvávající problém: <b>${r.issue.label}</b> se objevuje ${r.activeMonths.length} měsíce po sobě ve vybraném období — nejde o jednorázový výkyv, ale o opakující se téma vyžadující systémové řešení.${extra}</p>`;
   });
 
   const quickWin = rows.slice().sort((a, b) => (b.rangeTotals.negative || 0) - (a.rangeTotals.negative || 0))[0];
@@ -4067,7 +4107,9 @@ function renderMonthlyRecommendations() {
 
   topPosAll.slice(0, 2).forEach(t => {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
-    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span></p>`;
+    const topTag = getAspectTopDrivingTag(t.category, t.label, 'positive');
+    const extra = `<span class="reco-sub"><b>Aspekt:</b> ${t.label}${topTag ? ` · <b>Nejvíc se to týká tagu:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>${extra}</p>`;
   });
 
   if (!html) html = `<p>Nedostatek dat pro spolehlivá strategická doporučení v tomto období.</p>`;
