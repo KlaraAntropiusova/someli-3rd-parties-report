@@ -954,6 +954,7 @@
   }
   .mini-gauge-stat { display: flex; flex-direction: column; align-items: center; }
   .mini-gauge-stat b { font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .mini-gauge-stat b i { font-style: normal; font-size: 10px; color: var(--text-muted); font-weight: 500; }
   .mini-gauge-stat span { font-size: 9px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.03em; margin-top: 1px; }
 
   /* issues trend list */
@@ -1438,8 +1439,8 @@
     </div>
 
     <div class="card">
-      <h2>Pain-point index</h2>
-      <p class="sub">Podíl negativního sentimentu za aktuální měsíc (0 = žádné negativní zmínky, 1 = všechny zmínky negativní)</p>
+      <h2>Pain-point index (sentiment)</h2>
+      <p class="sub">Ukazatel sentimentu, ne kvality produktu — vyjadřuje podíl negativního sentimentu ve zmínkách za aktuální měsíc. 0 = žádné negativní zmínky, 1 = všechny zmínky negativní.</p>
       <div id="ov-gauge"></div>
     </div>
   </div>
@@ -1769,8 +1770,8 @@
   <!-- TAB: Pain-point index -->
   <div class="tab-panel" id="tab-painpoint-cat">
     <div class="card">
-      <h2>Pain-point index podle kategorie</h2>
-      <p class="sub">Index = pozitivní / (pozitivní + negativní) zmínky agregované za celou kategorii (group_2) · neutrální zmínky se do indexu nepočítají, jen do „Total“ · &lt;0,40 červená · 0,40–0,70 oranžová · &gt;0,70 zelená</p>
+      <h2>Pain-point index podle kategorie (sentiment)</h2>
+      <p class="sub">Jde o sentimentový ukazatel, ne o hodnocení kvality: index = podíl pozitivního sentimentu z pozitivních a negativních zmínek agregovaných za celou kategorii (group_2). Neutrální zmínky se do indexu nepočítají, jen do „Celkem zmínek“ — proto procenta pod grafem nemusí dát dohromady 100 %. &lt;0,40 červená · 0,40–0,70 oranžová · &gt;0,70 zelená</p>
     </div>
     <div class="painpoint-panel">
       <div class="mini-gauge-grid" id="painpoint-cat-grid"></div>
@@ -1780,8 +1781,8 @@
   <!-- TAB: Pain-point index by tag -->
   <div class="tab-panel" id="tab-painpoint-tags">
     <div class="card">
-      <h2>Pain-point index podle tagu</h2>
-      <p class="sub">Index = pozitivní / (pozitivní + negativní) zmínky u daného tagu · seskupeno podle kategorie (group_2) · zobrazeny jen tagy se zmínkami (459 z 473 v katalogu)</p>
+      <h2>Pain-point index podle tagu (sentiment)</h2>
+      <p class="sub">Jde o sentimentový ukazatel, ne o hodnocení kvality: index = podíl pozitivního sentimentu z pozitivních a negativních zmínek u daného tagu. Neutrální zmínky se do indexu nepočítají, jen do „Celkem zmínek“. Seskupeno podle kategorie (group_2) · zobrazeny jen tagy se zmínkami (459 z 473 v katalogu)</p>
     </div>
     <div class="painpoint-grid" id="painpoint-tags-grid"></div>
   </div>
@@ -3057,6 +3058,7 @@ function renderMiniGauge(aspect) {
   const fg = describeGaugeArc(cx, cy, r, 0, value === null ? 0 : value);
   const color = colorForPainPointValue(value);
   const label = value === null ? '–' : value.toFixed(2).replace('.', ',');
+  const pct = n => aspect.total ? Math.round((n / aspect.total) * 100) : 0;
   return `
     <div class="mini-gauge-card">
       <p class="mini-gauge-title">${aspect.label}</p>
@@ -3068,9 +3070,9 @@ function renderMiniGauge(aspect) {
         <text x="${cx + r}" y="${cy + 16}" text-anchor="middle" font-size="8" fill="var(--text-muted)">1,00</text>
       </svg>
       <div class="mini-gauge-stats">
-        <div class="mini-gauge-stat"><b>${aspect.total}</b><span>Total</span></div>
-        <div class="mini-gauge-stat"><b>${aspect.positive}</b><span>Positive</span></div>
-        <div class="mini-gauge-stat"><b>${aspect.negative}</b><span>Negative</span></div>
+        <div class="mini-gauge-stat"><b>${aspect.total}</b><span>Celkem</span></div>
+        <div class="mini-gauge-stat"><b>${pct(aspect.positive)}&nbsp;% <i>(${aspect.positive})</i></b><span>Pozitivní</span></div>
+        <div class="mini-gauge-stat"><b>${pct(aspect.negative)}&nbsp;% <i>(${aspect.negative})</i></b><span>Negativní</span></div>
       </div>
     </div>`;
 }
