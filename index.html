@@ -1122,6 +1122,27 @@
     margin-top: 3px;
   }
   .exec-summary-body .reco-sub b { color: var(--text-secondary); }
+  .exec-summary-body ul { margin: 0 0 10px; padding: 0; list-style: none; }
+  .exec-summary-body ul:last-child { margin-bottom: 0; }
+  .exec-summary-body li {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    padding-left: 16px;
+    position: relative;
+    margin-bottom: 6px;
+  }
+  .exec-summary-body li:last-child { margin-bottom: 0; }
+  .exec-summary-body li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.65em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--series-1);
+  }
   .reco-item {
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -3977,8 +3998,13 @@ function renderMonthlySummary() {
     : ` (pokles objemu o ${Math.abs(delta).toFixed(1)} % od ${MONTH_NAMES_CZ[first.month] || first.month})`;
   const rangeLabel = months.map(m => MONTH_NAMES_CZ[m] || m).join(' – ');
 
-  document.getElementById('monthly-ov-summary').innerHTML =
-    `<p>Za období <b>${rangeLabel}</b> bylo zaznamenáno <b>${totalAll.toLocaleString('cs-CZ')}</b> zmínek${deltaText}. Pozitivních <b>${posShare} %</b>, negativních <b>${negShare} %</b>.</p>`;
+  document.getElementById('monthly-ov-summary').innerHTML = `
+    <ul>
+      <li>Období: <b>${rangeLabel}</b></li>
+      <li>Celkem zmínek: <b>${totalAll.toLocaleString('cs-CZ')}</b>${deltaText}</li>
+      <li>Pozitivní podíl: <b>${posShare} %</b></li>
+      <li>Negativní podíl: <b>${negShare} %</b></li>
+    </ul>`;
 }
 
 function renderMonthlyStats() {
