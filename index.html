@@ -3288,6 +3288,10 @@ function lerpColor(hex1, hex2, t) {
   const r = Math.round(r1 + (r2 - r1) * t), g = Math.round(g1 + (g2 - g1) * t), b = Math.round(b1 + (b2 - b1) * t);
   return `rgb(${r},${g},${b})`;
 }
+function parseRgbString(s) {
+  const m = s.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  return m ? [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)] : [0, 0, 0];
+}
 // discrete quantile-based levels (GitHub-heatmap style) read much more clearly than
 // a smooth gradient, which flattens differences when most values cluster together.
 // Warm neutral umber (not pos/neg/brand) — this matrix is pure volume, not sentiment,
@@ -3338,7 +3342,9 @@ function renderSourceCategoryMatrix() {
       const v = matrix[s][c];
       if (!v) return `<td class="cell zero" data-source="${s}" data-category="${c}">0</td>`;
       const color = colorForLevel(v, thresholds);
-      return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color}">${v}</td>`;
+      const rgb = parseRgbString(color);
+      const textColor = contrastRatio(rgb, [0, 0, 0]) >= contrastRatio(rgb, [255, 255, 255]) ? '#000000' : '#ffffff';
+      return `<td class="cell" data-source="${s}" data-category="${c}" style="background:${color};color:${textColor};">${v}</td>`;
     }).join('');
     return `<tr><td class="row-head">${s}</td>${cells}<td class="total-cell">${rowTotal}</td></tr>`;
   }).join('');
