@@ -1380,7 +1380,6 @@
     <button class="tab-btn" data-tab="tab-trend">Vývoj v čase</button>
     <button class="tab-btn" data-tab="tab-issues">Top issues</button>
     <button class="tab-btn" data-tab="tab-issues-trend">Vývoj issues</button>
-    <button class="tab-btn" data-tab="tab-issue-clusters">Klastry podle aspektu</button>
     <button class="tab-btn" data-tab="tab-painpoint-cat">Pain-point: kategorie</button>
     <button class="tab-btn" data-tab="tab-painpoint-tags">Pain-point: tagy</button>
     <button class="tab-btn" data-tab="tab-trending">Rostoucí negativita</button>
@@ -1674,25 +1673,6 @@
       <p class="sub" id="issues-daily-sub"></p>
       <div id="issues-daily-chart"></div>
     </div>
-  </div>
-
-  <!-- TAB: Issue clusters by aspect/month -->
-  <div class="tab-panel" id="tab-issue-clusters">
-    <div class="card">
-      <h2>Klastry podle aspektu</h2>
-      <p class="sub" id="clusters-sub">Jeden aspekt může mít v jednom měsíci více samostatných klastrů problémů — tady je vidět všechny najednou · klikni na řádek pro souhrn a ukázky citací</p>
-      <div class="mentions-filters" style="margin-bottom:16px;">
-        <div class="filter-field">
-          <label>Aspekt</label>
-          <select id="cl-aspect"><option value="">Vše</option></select>
-        </div>
-        <div class="filter-field">
-          <label>Měsíc</label>
-          <select id="cl-month"><option value="">Vše</option></select>
-        </div>
-      </div>
-    </div>
-    <div id="issue-clusters-list"></div>
   </div>
 
   <!-- TAB: Sources -->
@@ -2721,78 +2701,6 @@ function renderIssuesDaily() {
 
   const series = days.map(d => ({ day: d, v: issue[dailyKey][d] || 0 }));
   renderSingleLineChart('issues-daily-chart', 'issd', 170, series, 'var(--accent-warm)');
-}
-
-/* ---------- issue clusters by aspect/month ---------- */
-function initIssueClustersFilters() {
-  const aspectSelect = document.getElementById('cl-aspect');
-  const monthSelect = document.getElementById('cl-month');
-  const aspects = Array.from(new Set(SENT.issues.map(i => i.aspect_label))).sort((a, b) => a.localeCompare(b, 'cs'));
-  aspectSelect.innerHTML = '<option value="">Vše</option>' + aspects.map(a => `<option value="${a}">${a}</option>`).join('');
-  const monthsPresent = Array.from(new Set(SENT.issues.map(i => i.month.split('_').slice(0, 2).join('-')))).sort();
-  monthSelect.innerHTML = '<option value="">Vše</option>' + monthsPresent.map(m => `<option value="${m}">${MONTH_NAMES_CZ[m] || m}</option>`).join('');
-  aspectSelect.addEventListener('change', renderIssueClusters);
-  monthSelect.addEventListener('change', renderIssueClusters);
-}
-
-function renderIssueClusters() {
-  const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
-  const aspectFilter = document.getElementById('cl-aspect').value;
-  const monthFilter = document.getElementById('cl-month').value;
-  const months = monthsInGlobalRange();
-
-  let filtered = SENT.issues.filter(issue => months.includes(issue.month.split('_').slice(0, 2).join('-')));
-  if (VERIFIED_ONLY) filtered = filtered.filter(issue => issue.v_mention_count > 0);
-  if (aspectFilter) filtered = filtered.filter(issue => issue.aspect_label === aspectFilter);
-  if (monthFilter) filtered = filtered.filter(issue => issue.month.split('_').slice(0, 2).join('-') === monthFilter);
-
-  document.getElementById('clusters-sub').textContent =
-    `Jeden aspekt může mít v jednom měsíci více samostatných klastrů problémů — tady je vidět všechny najednou · ${filtered.length} klastrů nalezeno · klikni na řádek pro souhrn a ukázky citací`;
-
-  const byAspect = {};
-  filtered.forEach(issue => { (byAspect[issue.aspect_label] = byAspect[issue.aspect_label] || []).push(issue); });
-  const aspectOrder = Object.keys(byAspect).sort((a, b) => {
-    const totalA = byAspect[a].reduce((s, i) => s + i[countField], 0);
-    const totalB = byAspect[b].reduce((s, i) => s + i[countField], 0);
-    return totalB - totalA;
-  });
-
-  const el = document.getElementById('issue-clusters-list');
-  el.innerHTML = aspectOrder.map(aspect => {
-    const issues = byAspect[aspect].slice().sort((a, b) => a.month !== b.month ? a.month.localeCompare(b.month) : b[countField] - a[countField]);
-    const totalMentions = issues.reduce((s, i) => s + i[countField], 0);
-    const monthsInvolved = new Set(issues.map(i => i.month.split('_').slice(0, 2).join('-'))).size;
-    const rowsHtml = issues.map(issue => `
-      <tr class="issue-row cl-row">
-        <td>${MONTH_NAMES_CZ[issue.month.split('_').slice(0, 2).join('-')] || issue.month}</td>
-        <td>${issue.label}</td>
-        <td class="num">${issue[countField]}</td>
-      </tr>
-      <tr class="cl-detail-row" style="display:none;">
-        <td colspan="3" style="padding:0;">
-          <div class="issue-detail open" style="display:block;">
-            <p class="summary"><b>Summary:</b> ${issue.summary}</p>
-            ${issue.examples.map((q, i) => `<p class="quote"><b>Example${issue.examples.length > 1 ? ' ' + (i + 1) : ''}:</b> "${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
-          </div>
-        </td>
-      </tr>`).join('');
-    return `
-      <div class="card">
-        <h2>${aspect}</h2>
-        <p class="sub">${issues.length} klastrů napříč ${monthsInvolved} ${monthsInvolved === 1 ? 'měsícem' : 'měsíci'} · ${totalMentions.toLocaleString('cs-CZ')} zmínek celkem</p>
-        <table class="trending-table">
-          <thead><tr><th>Měsíc</th><th>Issue klastr</th><th style="text-align:right;">Zmínky</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>`;
-  }).join('') || `<div class="card"><p class="empty-hint">Žádné klastry neodpovídají zadanému filtru.</p></div>`;
-
-  el.querySelectorAll('.cl-row').forEach(tr => {
-    tr.addEventListener('click', () => {
-      const detailRow = tr.nextElementSibling;
-      detailRow.style.display = detailRow.style.display === 'none' ? '' : 'none';
-    });
-  });
 }
 
 /* ---------- sources (tab 6) ---------- */
@@ -4411,7 +4319,6 @@ Promise.all([
   initTrendCategoryFilters();
   initIssuesFilters();
   initIssuesTrendFilters();
-  initIssueClustersFilters();
   initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
   initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
   initKeywordsControls();
@@ -4434,7 +4341,6 @@ function renderAllForGlobalRange() {
   renderIssues();
   renderIssuesTrendList();
   renderIssuesDaily();
-  renderIssueClusters();
   renderSources();
   renderPainPointByCategory();
   renderPainPointByTags();
