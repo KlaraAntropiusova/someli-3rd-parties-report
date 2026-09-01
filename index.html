@@ -1645,6 +1645,12 @@
     <div class="card">
       <h2>Top issues — vývoj v čase</h2>
       <p class="sub" id="issues-trend-sub">Issue klastry rozdělené po kategoriích · klikni na řádek pro denní rozpad zmínek</p>
+      <div class="mentions-filters" style="margin-bottom:16px;">
+        <div class="filter-field">
+          <label>Kategorie</label>
+          <select id="itf-category"><option value="">Vše</option></select>
+        </div>
+      </div>
       <div class="legend">
         <span><span class="swatch" style="background:var(--seq-100)"></span>2026-05</span>
         <span><span class="swatch" style="background:var(--series-1)"></span>2026-06</span>
@@ -2506,36 +2512,48 @@ function renderMiniLineChart(values, months) {
   </svg>`;
 }
 
+function initIssuesTrendFilters() {
+  const categorySelect = document.getElementById('itf-category');
+  const categories = Array.from(new Set(ISSUES_TREND.top_issues.map(i => i.category))).sort((a, b) => a.localeCompare(b, 'cs'));
+  categorySelect.innerHTML = '<option value="">Vše</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+  categorySelect.addEventListener('change', renderIssuesTrendList);
+}
+
 function renderIssuesTrendList() {
   const el = document.getElementById('issues-trend-list');
   const months = monthsInGlobalRange();
   const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
   const [mayLbl, junLbl, julLbl] = ALL_MONTHS.map(m => MONTH_NAMES_CZ[m] || m);
+  const categoryFilter = document.getElementById('itf-category').value;
 
-  const withTotals = ISSUES_TREND.top_issues.map(issue => ({
-    issue,
-    filteredTotal: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0)
-  })).filter(x => x.filteredTotal > 0);
+  const withTotals = ISSUES_TREND.top_issues
+    .filter(issue => !categoryFilter || issue.category === categoryFilter)
+    .map(issue => {
+      const mayV = issue[monthsKey]['2026-05'] || 0;
+      const julV = issue[monthsKey]['2026-07'] || 0;
+      return {
+        issue, mayV, julV,
+        deviation: julV - mayV,
+        filteredTotal: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0),
+      };
+    })
+    .filter(x => x.filteredTotal > 0);
 
   const byCategory = {};
-  withTotals.forEach(({ issue, filteredTotal }) => {
-    (byCategory[issue.category] = byCategory[issue.category] || []).push({ issue, filteredTotal });
-  });
-  Object.values(byCategory).forEach(rows => rows.sort((a, b) => b.filteredTotal - a.filteredTotal));
+  withTotals.forEach(row => { (byCategory[row.issue.category] = byCategory[row.issue.category] || []).push(row); });
+  Object.values(byCategory).forEach(rows => rows.sort((a, b) => b.deviation - a.deviation));
 
-  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
-  Object.keys(byCategory).forEach(cat => { if (!categoryOrder.includes(cat)) categoryOrder.push(cat); });
+  const categoryOrder = Object.keys(byCategory).sort((a, b) =>
+    Math.max(...byCategory[b].map(r => r.deviation)) - Math.max(...byCategory[a].map(r => r.deviation)));
 
   document.getElementById('issues-trend-sub').textContent =
-    `${withTotals.length} issue klastrů rozdělených po kategoriích · ${mayLbl} → ${junLbl} → ${julLbl} · klikni na řádek pro denní rozpad zmínek`;
+    `${withTotals.length} issue klastrů rozdělených po kategoriích, kategorie i řádky seřazené od největšího nárůstu (nejhorší vývoj) · ${mayLbl} → ${junLbl} → ${julLbl} · klikni na řádek pro denní rozpad zmínek`;
 
   el.innerHTML = categoryOrder.map(cat => {
     const rows = byCategory[cat];
-    const rowsHtml = rows.map(({ issue }) => {
+    const rowsHtml = rows.map(({ issue, mayV, julV }) => {
       const key = issue.aspect + '::' + issue.cluster;
-      const mayV = issue[monthsKey]['2026-05'] || 0;
       const junV = issue[monthsKey]['2026-06'] || 0;
-      const julV = issue[monthsKey]['2026-07'] || 0;
       const chart = renderMiniLineChart(months.map(m => issue[monthsKey][m] || 0), months);
       return `
         <tr class="issue-row trend-issue-tr${selectedIssueKey === key ? ' selected' : ''}" data-issue-key="${key}">
@@ -4167,6 +4185,7 @@ Promise.all([
   renderMentionsTable();
   initTrendCategoryFilters();
   initIssuesFilters();
+  initIssuesTrendFilters();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
