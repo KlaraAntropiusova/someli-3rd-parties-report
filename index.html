@@ -14,7 +14,7 @@
     --page-plane:     #faebd7;
     --text-primary:   #2b211a;
     --text-secondary: #5b4a3b;
-    --text-muted:     #8a7862;
+    --text-muted:     #756652;
     --gridline:       #e8dcc6;
     --baseline:       #afa089;
     --border:         rgba(90,60,30,0.16);
@@ -317,8 +317,10 @@
   }
   .toolbar {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     margin-bottom: 18px;
   }
 
@@ -329,6 +331,7 @@
     gap: 14px;
     margin-bottom: 18px;
   }
+  .stat-row-4 { grid-template-columns: repeat(4, 1fr); }
   .stat-tile {
     background: var(--surface-1);
     border: 1px solid var(--border);
@@ -1290,6 +1293,36 @@
     color: var(--text-muted);
   }
   .gauge-prev b { color: var(--text-secondary); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 900px) {
+    .viz-root { padding: 0 16px 40px; }
+    header { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .header-meta { flex-wrap: wrap; row-gap: 10px; }
+    .layout { flex-direction: column; }
+    .tabs {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      position: static;
+      max-height: none;
+      width: 100%;
+    }
+    .tabs .nav-section-label { display: none; }
+    .tabs button { flex: 0 0 auto; white-space: nowrap; }
+    .overview-grid.grid-2-1,
+    .overview-grid.grid-1-1-1,
+    .overview-grid.grid-1-1 { grid-template-columns: 1fr; }
+    .stat-row, .stat-row-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .viz-root { padding: 0 12px 32px; }
+    .card { padding: 16px 16px; }
+    .stat-row, .stat-row-4 { grid-template-columns: 1fr; }
+    .verified-banner { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .verified-segmented { width: 100%; }
+    .verified-seg-btn { flex: 1 1 auto; text-align: center; }
+  }
 </style>
 </head>
 <body>
@@ -1325,9 +1358,9 @@
   </div>
 
   <div class="layout">
-  <div class="tabs">
+  <nav class="tabs" aria-label="Navigace reportu">
     <p class="nav-section-label" style="padding-top:4px;">Přehled</p>
-    <button class="tab-btn active" data-tab="tab-overview">Celkový přehled</button>
+    <button class="tab-btn active" data-tab="tab-overview" aria-current="page">Celkový přehled</button>
     <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
     <button class="tab-btn" data-tab="tab-monthly-overview">Měsíční shrnutí</button>
 
@@ -1353,9 +1386,9 @@
     <p class="nav-section-label">Uživatelská nastavení</p>
     <button class="tab-btn" data-tab="tab-my-dashboard">Moje přehled</button>
     <button class="tab-btn" data-tab="tab-settings">Nastavení</button>
-  </div>
+  </nav>
 
-  <div class="content">
+  <main class="content">
   <!-- TAB: Overview -->
   <div class="tab-panel active" id="tab-overview">
     <div class="card exec-summary-card">
@@ -1424,7 +1457,7 @@
       <div id="daily-ov-recommendations" class="exec-summary-body"></div>
     </div>
 
-    <div class="stat-row" id="daily-ov-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
+    <div class="stat-row stat-row-4" id="daily-ov-stats"></div>
 
     <div class="card">
       <h2>Vývoj za posledních 14 dní</h2>
@@ -1476,7 +1509,7 @@
       <div id="monthly-ov-summary" class="exec-summary-body"></div>
     </div>
 
-    <div class="stat-row" id="monthly-ov-stats" style="grid-template-columns: repeat(4, 1fr);"></div>
+    <div class="stat-row stat-row-4" id="monthly-ov-stats"></div>
 
     <div class="card exec-summary-card">
       <h2>Strategická doporučení</h2>
@@ -1836,7 +1869,7 @@
       <button id="settings-reset" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">Obnovit výchozí nastavení</button>
     </div>
   </div>
-  </div>
+  </main>
   </div>
 </div>
 <div id="tooltip"></div>
@@ -1891,17 +1924,29 @@ const ACCENT_PRESETS = {
   charcoal:   { label: 'Antracitová', base: '#4a5568' },
 };
 
+function relativeLuminance([r, g, b]) {
+  const f = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+function contrastRatio(rgb1, rgb2) {
+  const l1 = relativeLuminance(rgb1), l2 = relativeLuminance(rgb2);
+  const hi = Math.max(l1, l2), lo = Math.min(l1, l2);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
 function applyAccent(key) {
   const preset = ACCENT_PRESETS[key] || ACCENT_PRESETS.terracotta;
   const [r, g, b] = hexToRgbArr(preset.base);
-  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
   const root = document.documentElement.style;
   root.setProperty('--series-1', preset.base);
   root.setProperty('--series-1-soft', `rgba(${r},${g},${b},0.14)`);
   root.setProperty('--hover-wash', `rgba(${r},${g},${b},0.08)`);
   root.setProperty('--seq-100', lerpColor(preset.base, '#ffffff', 0.55));
   root.setProperty('--seq-700', lerpColor(preset.base, '#1a1008', 0.45));
-  root.setProperty('--on-accent', luminance > 140 ? '#2b211a' : '#fff6e9');
+  // WCAG AA needs >=4.5:1 for button/tab text — pick whichever extreme actually wins,
+  // since a warm-tinted near-black/near-white (instead of pure #000/#fff) can fall short
+  // on mid-lightness accents like mustard, where neither choice has much room to spare.
+  root.setProperty('--on-accent', contrastRatio([r, g, b], [0, 0, 0]) >= contrastRatio([r, g, b], [255, 255, 255]) ? '#000000' : '#ffffff');
 }
 
 /* ---------- full layout color (page/card/text surfaces) — independent of accent ---------- */
@@ -2120,9 +2165,10 @@ function openPainPointMentions(item, exampleType, key) {
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.removeAttribute('aria-current'); });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
+    btn.setAttribute('aria-current', 'page');
     const panel = document.getElementById(btn.dataset.tab);
     panel.classList.add('active');
     document.querySelector('.header-meta').style.display = btn.dataset.tab === 'tab-mentions' ? 'none' : '';
