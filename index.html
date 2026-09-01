@@ -25,7 +25,7 @@
     --hover-wash:     rgba(181,84,31,0.08);
     --neg:            #b23a2e;
     --neutral-fill:   #93816c;
-    --pos:            #235c79;
+    --pos:            #3f7d52;
     --accent-warm:    #a8781e;
     --on-accent:      #fff6e9;
     --shadow-sm:      0 1px 2px rgba(60,40,20,0.14);
@@ -52,7 +52,7 @@
     --hover-wash:     rgba(217,122,62,0.12);
     --neg:            #d9695a;
     --neutral-fill:   #a89478;
-    --pos:            #5b9dc2;
+    --pos:            #6fb583;
     --accent-warm:    #d1a13d;
     --on-accent:      #1c140e;
     --shadow-sm:      0 1px 2px rgba(0,0,0,0.35);
@@ -863,7 +863,7 @@
     text-transform: uppercase;
     letter-spacing: 0.02em;
   }
-  .sentiment-badge.positive { background: rgba(35,92,121,0.16); color: var(--pos); }
+  .sentiment-badge.positive { background: rgba(63,125,82,0.16); color: var(--pos); }
   .sentiment-badge.negative { background: rgba(178,58,46,0.16); color: var(--neg); }
   .sentiment-badge.neutral { background: rgba(147,129,108,0.2); color: var(--text-secondary); }
   .verified-badge {
@@ -872,7 +872,7 @@
     font-weight: 600;
     padding: 2px 9px;
     border-radius: 999px;
-    background: rgba(35,92,121,0.16);
+    background: rgba(63,125,82,0.16);
     color: var(--pos);
   }
   .mention-text-cell { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
@@ -2833,7 +2833,7 @@ function painPointValue(item) {
   return denom > 0 ? item.positive / denom : null;
 }
 
-// red (0) → amber (1) → blue/"good" (2) → no data (3); ties broken by higher volume first
+// red (0) → amber (1) → green (2) → no data (3); ties broken by higher volume first
 function sortByPainPointSeverity(items) {
   const band = v => v === null ? 3 : v < 0.4 ? 0 : v < 0.7 ? 1 : 2;
   return items.slice().sort((a, b) => {
