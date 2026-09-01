@@ -1792,6 +1792,16 @@
     <div class="card">
       <h2>Rostoucí negativita</h2>
       <p class="sub" id="trending-sub">Meziměsíční změna negativity podle aspektu</p>
+      <div class="mentions-filters" style="margin-top:14px;">
+        <div class="filter-field">
+          <label>Kategorie</label>
+          <select id="trend-neg-category"><option value="">Vše</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Aspekt</label>
+          <select id="trend-neg-aspect"><option value="">Vše</option></select>
+        </div>
+      </div>
     </div>
     <div id="trending-transitions"></div>
   </div>
@@ -1801,6 +1811,16 @@
     <div class="card">
       <h2>Rostoucí pozitivita</h2>
       <p class="sub" id="trending-pos-sub">Meziměsíční změna pozitivity podle aspektu</p>
+      <div class="mentions-filters" style="margin-top:14px;">
+        <div class="filter-field">
+          <label>Kategorie</label>
+          <select id="trend-pos-category"><option value="">Vše</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Aspekt</label>
+          <select id="trend-pos-aspect"><option value="">Vše</option></select>
+        </div>
+      </div>
     </div>
     <div id="trending-pos-transitions"></div>
   </div>
@@ -3179,16 +3199,42 @@ function growthDeltaHtml(curr, prev, goodDirection) {
   return `<span class="compare-delta ${dir} ${quality}"><b>${sign}${absDelta.toLocaleString('cs-CZ')}</b> zmínek${multText}</span>`;
 }
 
-function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGoodDirection, emptyText) {
+function populateTrendAspectOptions(field, categorySelectId, aspectSelectId) {
+  const categoryFilter = document.getElementById(categorySelectId).value;
+  const aspectSelect = document.getElementById(aspectSelectId);
+  const currentValue = aspectSelect.value;
+  const byCategory = computeSentimentTrendByCategory(field);
+  const pool = categoryFilter ? { [categoryFilter]: byCategory[categoryFilter] || [] } : byCategory;
+  const labels = Array.from(new Set(Object.values(pool).flat().map(r => r.label))).sort((a, b) => a.localeCompare(b, 'cs'));
+  aspectSelect.innerHTML = '<option value="">Vše</option>' + labels.map(l => `<option value="${l}">${l}</option>`).join('');
+  if (labels.includes(currentValue)) aspectSelect.value = currentValue;
+}
+
+function initTrendingFilters(field, categorySelectId, aspectSelectId, renderFn) {
+  const categorySelect = document.getElementById(categorySelectId);
+  const byCategory = computeSentimentTrendByCategory(field);
+  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
+  categorySelect.innerHTML = '<option value="">Vše</option>' + categoryOrder.map(c => `<option value="${c}">${c}</option>`).join('');
+  populateTrendAspectOptions(field, categorySelectId, aspectSelectId);
+
+  categorySelect.addEventListener('change', () => { populateTrendAspectOptions(field, categorySelectId, aspectSelectId); renderFn(); });
+  document.getElementById(aspectSelectId).addEventListener('change', renderFn);
+}
+
+function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGoodDirection, emptyText, categorySelectId, aspectSelectId) {
   const [may, jun, jul] = ALL_MONTHS.map(m => MONTH_NAMES_CZ[m] || m);
   document.getElementById(subId).textContent =
     `Vývoj ${sentimentWord} zmínek podle aspektu, rozdělené po kategoriích · ${may} → ${jun} → ${jul} · jen aspekty s alespoň 10 zmínkami v květnu a rostoucí hodnotou`;
 
+  const categoryFilter = document.getElementById(categorySelectId).value;
+  const aspectFilter = document.getElementById(aspectSelectId).value;
   const byCategory = computeSentimentTrendByCategory(field);
-  const categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
+  let categoryOrder = DATA.group2_summary.map(g => g.name).filter(name => byCategory[name] && byCategory[name].length);
+  if (categoryFilter) categoryOrder = categoryOrder.filter(name => name === categoryFilter);
 
   document.getElementById(containerId).innerHTML = categoryOrder.map(cat => {
-    const rows = byCategory[cat];
+    const rows = byCategory[cat].filter(r => !aspectFilter || r.label === aspectFilter);
+    if (!rows.length) return '';
     const rowsHtml = rows.map(r => `
       <tr>
         <td>${r.label}</td>
@@ -3219,11 +3265,11 @@ function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGo
 
 function renderTrending() {
   renderTrendingByField('negative', 'trending-sub', 'trending-transitions', 'negativních', 'down',
-    'Žádná kategorie nemá aspekty s rostoucí negativitou.');
+    'Žádná kategorie nemá aspekty s rostoucí negativitou.', 'trend-neg-category', 'trend-neg-aspect');
 }
 function renderTrendingPositive() {
   renderTrendingByField('positive', 'trending-pos-sub', 'trending-pos-transitions', 'pozitivních', 'up',
-    'Žádná kategorie nemá aspekty s rostoucí pozitivitou.');
+    'Žádná kategorie nemá aspekty s rostoucí pozitivitou.', 'trend-pos-category', 'trend-pos-aspect');
 }
 
 /* ---------- shared color-level helper (used by the source × category matrix) ---------- */
@@ -4188,6 +4234,8 @@ Promise.all([
   initTrendCategoryFilters();
   initIssuesFilters();
   initIssuesTrendFilters();
+  initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
+  initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
