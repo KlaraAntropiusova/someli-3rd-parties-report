@@ -1610,6 +1610,20 @@
     <div class="card">
       <h2>Nejčastější issue klastry</h2>
       <p class="sub" id="issues-sub">332 shluků problémů/témat seřazených podle počtu zmínek · klikni na řádek pro detail a ukázky citací</p>
+      <div class="mentions-filters" style="margin-bottom:16px;">
+        <div class="filter-field">
+          <label>Aspekt</label>
+          <select id="if-aspect"><option value="">Vše</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Issue</label>
+          <select id="if-issue"><option value="">Vše</option></select>
+        </div>
+        <div class="filter-field">
+          <label>Měsíc</label>
+          <select id="if-month"><option value="">Vše</option></select>
+        </div>
+      </div>
       <table>
         <thead>
           <tr>
@@ -2388,13 +2402,43 @@ function showTrendDayDetail(day, sentimentFilter) {
 }
 
 /* ---------- issues (tab 4) ---------- */
+function populateIssueFilterOptions() {
+  const aspectFilter = document.getElementById('if-aspect').value;
+  const issueSelect = document.getElementById('if-issue');
+  const currentValue = issueSelect.value;
+  const pool = aspectFilter ? SENT.issues.filter(i => i.aspect_label === aspectFilter) : SENT.issues;
+  const labels = Array.from(new Set(pool.map(i => i.label))).sort((a, b) => a.localeCompare(b, 'cs'));
+  issueSelect.innerHTML = '<option value="">Vše</option>' + labels.map(l => `<option value="${l}">${l}</option>`).join('');
+  if (labels.includes(currentValue)) issueSelect.value = currentValue;
+}
+
+function initIssuesFilters() {
+  const aspectSelect = document.getElementById('if-aspect');
+  const monthSelect = document.getElementById('if-month');
+  const aspects = Array.from(new Set(SENT.issues.map(i => i.aspect_label))).sort((a, b) => a.localeCompare(b, 'cs'));
+  aspectSelect.innerHTML = '<option value="">Vše</option>' + aspects.map(a => `<option value="${a}">${a}</option>`).join('');
+  const monthsPresent = Array.from(new Set(SENT.issues.map(i => i.month.split('_').slice(0, 2).join('-')))).sort();
+  monthSelect.innerHTML = '<option value="">Vše</option>' + monthsPresent.map(m => `<option value="${m}">${MONTH_NAMES_CZ[m] || m}</option>`).join('');
+  populateIssueFilterOptions();
+
+  aspectSelect.addEventListener('change', () => { populateIssueFilterOptions(); renderIssues(); });
+  document.getElementById('if-issue').addEventListener('change', renderIssues);
+  monthSelect.addEventListener('change', renderIssues);
+}
+
 function renderIssues() {
   const body = document.getElementById('issues-body');
   body.innerHTML = '';
   const months = monthsInGlobalRange();
   const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
+  const aspectFilter = document.getElementById('if-aspect').value;
+  const issueFilter = document.getElementById('if-issue').value;
+  const monthFilter = document.getElementById('if-month').value;
   let filtered = SENT.issues.filter(issue => months.includes(issue.month.split('_').slice(0, 2).join('-')));
   if (VERIFIED_ONLY) filtered = filtered.filter(issue => issue.v_mention_count > 0);
+  if (aspectFilter) filtered = filtered.filter(issue => issue.aspect_label === aspectFilter);
+  if (issueFilter) filtered = filtered.filter(issue => issue.label === issueFilter);
+  if (monthFilter) filtered = filtered.filter(issue => issue.month.split('_').slice(0, 2).join('-') === monthFilter);
   filtered = filtered.slice().sort((a, b) => b[countField] - a[countField]);
   document.getElementById('issues-sub').textContent =
     `${filtered.length} shluků problémů/témat (z ${SENT.issues.length}) seřazených podle počtu zmínek · klikni na řádek pro detail a ukázky citací`;
@@ -2415,8 +2459,8 @@ function renderIssues() {
     const detail = document.createElement('div');
     detail.className = 'issue-detail';
     detail.innerHTML = `
-      <p class="summary">${issue.summary}</p>
-      ${issue.examples.map(q => `<p class="quote">"${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
+      <p class="summary"><b>Summary:</b> ${issue.summary}</p>
+      ${issue.examples.map((q, idx) => `<p class="quote"><b>Example${issue.examples.length > 1 ? ' ' + (idx + 1) : ''}:</b> "${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
     `;
     detailTd.appendChild(detail);
     detailTr.appendChild(detailTd);
@@ -4081,6 +4125,7 @@ Promise.all([
   initMentionsFilters();
   renderMentionsTable();
   initTrendCategoryFilters();
+  initIssuesFilters();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
