@@ -460,6 +460,7 @@
   }
   tbody tr:hover { background: var(--hover-wash); }
   td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  .share-pct { font-size: 11px; color: var(--text-muted); }
   table.trending-table { table-layout: fixed; width: 100%; }
   table.trending-table th:not(:first-child),
   table.trending-table td:not(:first-child) { width: 110px; }
@@ -2776,7 +2777,11 @@ function renderIssuesTrendList() {
     Math.max(...byCategory[b].map(r => r.deviation)) - Math.max(...byCategory[a].map(r => r.deviation)));
 
   document.getElementById('issues-trend-sub').textContent =
-    `${withTotals.length} issue klastrů rozdělených po kategoriích, kategorie i řádky seřazené od největšího nárůstu (nejhorší vývoj) · ${mayLbl} → ${junLbl} → ${julLbl} · klikni na řádek pro denní rozpad zmínek`;
+    `${withTotals.length} issue klastrů rozdělených po kategoriích, kategorie i řádky seřazené od největšího nárůstu (nejhorší vývoj) · ${mayLbl} → ${junLbl} → ${julLbl} · v závorce podíl na celkovém počtu zmínek daného měsíce, aby bylo vidět, jestli nárůst není jen odrazem celkově vyššího objemu zmínek · klikni na řádek pro denní rozpad zmínek`;
+
+  const monthTotal = {};
+  trueMonthStats().forEach(m => { monthTotal[m.month] = m.total; });
+  const sharePct = (v, month) => monthTotal[month] ? `${((v / monthTotal[month]) * 100).toFixed(1).replace('.', ',')} %` : '—';
 
   el.innerHTML = categoryOrder.map(cat => {
     const rows = byCategory[cat];
@@ -2787,9 +2792,9 @@ function renderIssuesTrendList() {
       return `
         <tr class="issue-row trend-issue-tr${selectedIssueKey === key ? ' selected' : ''}" data-issue-key="${key}">
           <td>${issue.label}<span class="aspect-tag">${issue.aspect_label}</span></td>
-          <td class="num">${mayV}</td>
-          <td class="num">${junV}</td>
-          <td class="num">${julV}</td>
+          <td class="num">${mayV} <span class="share-pct">(${sharePct(mayV, '2026-05')})</span></td>
+          <td class="num">${junV} <span class="share-pct">(${sharePct(junV, '2026-06')})</span></td>
+          <td class="num">${julV} <span class="share-pct">(${sharePct(julV, '2026-07')})</span></td>
           <td class="num">${growthDeltaHtml(julV, mayV, 'down')}</td>
           <td style="width:70px;">${chart}</td>
         </tr>`;
