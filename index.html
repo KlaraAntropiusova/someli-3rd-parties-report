@@ -4204,7 +4204,8 @@ function renderMonthlyRecommendations() {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
     const topIssue = getAspectTopIssueSummary(t.key, activeMonths);
     const topTag = getAspectTopDrivingTag(t.category, t.label, 'negative');
-    let extra = `<span class="reco-sub"><b>Aspekt:</b> ${t.label}${topTag ? ` · <b>Nejvíc se to týká tagu:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    let extra = '';
+    if (topTag && topTag.name !== t.label) extra += `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
     html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
@@ -4214,7 +4215,8 @@ function renderMonthlyRecommendations() {
   recurring.slice(0, 2).forEach(r => {
     const matchingIssue = SENT.issues.find(i => i.aspect === r.issue.aspect && i.cluster === r.issue.cluster && activeMonths.includes(i.month.split('_').slice(0, 2).join('-')));
     const topTag = getAspectTopDrivingTag(r.issue.category, r.issue.aspect_label, 'negative');
-    let extra = `<span class="reco-sub"><b>Aspekt:</b> ${r.issue.aspect_label}${topTag ? ` · <b>Tag:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    let extra = '';
+    if (topTag && topTag.name !== r.issue.aspect_label) extra += `<span class="reco-sub">Konkrétně se to nejvíc týká: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
     if (matchingIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${matchingIssue.summary}</span>`;
     html += `<p class="risk">Přetrvávající problém: <b>${r.issue.label}</b> se objevuje ${r.activeMonths.length} měsíce po sobě ve vybraném období — nejde o jednorázový výkyv, ale o opakující se téma vyžadující systémové řešení.${extra}</p>`;
   });
@@ -4234,7 +4236,9 @@ function renderMonthlyRecommendations() {
   topPosAll.slice(0, 2).forEach(t => {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
     const topTag = getAspectTopDrivingTag(t.category, t.label, 'positive');
-    const extra = `<span class="reco-sub"><b>Aspekt:</b> ${t.label}${topTag ? ` · <b>Nejvíc se to týká tagu:</b> ${topTag.name} (${topTag.mayV} → ${topTag.julV} zmínek)` : ''}</span>`;
+    const extra = (topTag && topTag.name !== t.label)
+      ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`
+      : '';
     html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>${extra}</p>`;
   });
 
