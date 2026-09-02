@@ -2695,10 +2695,16 @@ function renderIssues() {
     detailTd.style.padding = '0';
     const detail = document.createElement('div');
     detail.className = 'issue-detail';
+    const allMentions = (ISSUE_CLUSTER_MENTIONS && ISSUE_CLUSTER_MENTIONS[issue.cluster_key]) || [];
     detail.innerHTML = `
       <p class="summary"><b>Summary:</b> ${issue.summary}</p>
       ${issue.examples.map((q, idx) => `<p class="quote"><b>Example${issue.examples.length > 1 ? ' ' + (idx + 1) : ''}:</b> "${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
+      ${allMentions.length ? `<button class="mention-link issue-all-mentions-btn" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;font-size:13px;">Zobrazit všech ${issue[countField].toLocaleString('cs-CZ')} zmínek →</button>` : ''}
     `;
+    const allBtn = detail.querySelector('.issue-all-mentions-btn');
+    if (allBtn) {
+      allBtn.addEventListener('click', () => openDetailModal(`${issue.label} — ${issue.aspect_label}`, allMentions, true));
+    }
     detailTd.appendChild(detail);
     detailTr.appendChild(detailTd);
     tr.addEventListener('click', () => detail.classList.toggle('open'));
@@ -4526,6 +4532,7 @@ renderDashboardPicker();
 let EXAMPLES = null;
 let TAG_SENTIMENT = null;
 let KEYWORDS = null;
+let ISSUE_CLUSTER_MENTIONS = null;
 const CACHE_BUST = Date.now();
 const jf = name => fetch(`${name}?v=${CACHE_BUST}`, { cache: 'no-store' }).then(r => r.json());
 Promise.all([
@@ -4537,8 +4544,9 @@ Promise.all([
   jf('examples_data.json'),
   jf('mentions_data.json'),
   jf('tag_sentiment_data.json'),
-  jf('keywords_data.json')
-]).then(([tagsData, sentData, issuesTrendData, sourcesData, dailyData, examplesData, mentionsData, tagSentimentData, keywordsData]) => {
+  jf('keywords_data.json'),
+  jf('issue_cluster_mentions_data.json')
+]).then(([tagsData, sentData, issuesTrendData, sourcesData, dailyData, examplesData, mentionsData, tagSentimentData, keywordsData, issueClusterMentionsData]) => {
   DATA = tagsData;
   SENT = sentData;
   ISSUES_TREND = issuesTrendData;
@@ -4548,6 +4556,7 @@ Promise.all([
   MENTIONS = mentionsData;
   TAG_SENTIMENT = tagSentimentData;
   KEYWORDS = keywordsData;
+  ISSUE_CLUSTER_MENTIONS = issueClusterMentionsData;
   document.getElementById('meta-mentions').textContent = SENT.meta.total_mentions.toLocaleString('cs-CZ');
   document.getElementById('meta-tags').textContent = DATA.total_tags;
   document.querySelectorAll('.verified-banner .verified-seg-btn').forEach(b =>
