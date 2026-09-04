@@ -2407,10 +2407,12 @@ function openPainPointMentions(item, exampleType, key) {
   openDetailModal(`${item.label} — index ${valueLabel} (${item.positive} pozitivních, ${item.negative} negativních)`, gaugePainPointExamples(exampleType, key));
 }
 
-function openTrendDetail(aspectKey, label, category) {
+function openTrendDetail(aspectKey, label, category, field) {
+  field = field || 'negative';
   const bucket = EXAMPLES && EXAMPLES.aspects && EXAMPLES.aspects[aspectKey];
-  const examples = bucket ? (bucket.negative || []) : [];
-  openDetailModal(`${label} — rostoucí negativita (${category})`, examples, true);
+  const examples = bucket ? (bucket[field] || []) : [];
+  const word = field === 'positive' ? 'rostoucí pozitivita' : 'rostoucí negativita';
+  openDetailModal(`${label} — ${word} (${category})`, examples, true);
 }
 
 /* ---------- tabs ---------- */
@@ -3726,7 +3728,8 @@ function renderExecutiveSummary() {
     const extraPos = (topTagPos && topTagPos.name !== topPos.label)
       ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTagPos.name}</b> (${topTagPos.mayV} → ${topTagPos.julV} zmínek)</span>`
       : '';
-    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>${extraPos}</p>`;
+    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+      <button class="mention-link trend-detail-btn" data-key="${topPos.key}" data-label="${topPos.label}" data-category="${topPos.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extraPos}</p>`;
   }
   if (!topNeg && !topPos) {
     html += `<p>Žádný aspekt nemá dostatek dat pro spolehlivé srovnání trendu.</p>`;
@@ -3735,7 +3738,7 @@ function renderExecutiveSummary() {
   const execEl = document.getElementById('ov-exec-summary');
   execEl.innerHTML = html;
   execEl.querySelectorAll('.trend-detail-btn').forEach(btn => {
-    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category));
+    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category, btn.dataset.field));
   });
 }
 
@@ -4264,14 +4267,15 @@ function renderMonthlyRecommendations() {
     const extra = (topTag && topTag.name !== t.label)
       ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`
       : '';
-    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>${extra}</p>`;
+    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>
+      <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
 
   if (!html) html = `<p>Nedostatek dat pro spolehlivá strategická doporučení v tomto období.</p>`;
   const recoEl = document.getElementById('monthly-ov-recommendations');
   recoEl.innerHTML = html;
   recoEl.querySelectorAll('.trend-detail-btn').forEach(btn => {
-    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category));
+    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category, btn.dataset.field));
   });
 }
 
