@@ -1517,8 +1517,18 @@
     </div>
 
     <div class="card">
-      <h2>Top 8 kategorií</h2>
-      <p class="sub">Aspekty s nejvyšším objemem zmínek</p>
+      <div class="toolbar">
+        <div>
+          <h2>Top 8 kategorií</h2>
+          <p class="sub" id="ov-categories-sub">Aspekty s nejvyšším objemem zmínek</p>
+        </div>
+        <div class="view-toggle">
+          <button id="ov-cat-sort-total" class="active">Podle objemu</button>
+          <button id="ov-cat-sort-negative">Nejvíc negativních</button>
+          <button id="ov-cat-sort-positive">Nejvíc pozitivních</button>
+          <button id="ov-cat-sort-neutral">Nejvíc neutrálních</button>
+        </div>
+      </div>
       <div id="ov-categories-bar"></div>
     </div>
 
@@ -3102,13 +3112,34 @@ function renderOverviewSources() {
   renderAbsStackedBar('ov-sources-bar', rows, ['negative', 'positive', 'neutral'], 'sources');
 }
 
+let ovCatSortMode = 'total'; // 'total' | 'negative' | 'positive' | 'neutral'
+const OV_CAT_SORT_LABEL = { total: 'nejvyšším objemem zmínek', negative: 'nejvíc negativních zmínek', positive: 'nejvíc pozitivních zmínek', neutral: 'nejvíc neutrálních zmínek' };
+const OV_CAT_SEG_ORDER = {
+  total: ['negative', 'positive', 'neutral'],
+  negative: ['negative', 'positive', 'neutral'],
+  positive: ['positive', 'negative', 'neutral'],
+  neutral: ['neutral', 'negative', 'positive'],
+};
+
 function renderOverviewCategories() {
   const months = monthsInGlobalRange();
   const rows = SENT.aspect_summary
     .map(a => ({ label: a.label, key: a.aspect, ...sumMonthly(a.monthly, months) }))
-    .sort((a, b) => b.total - a.total)
+    .sort((a, b) => b[ovCatSortMode] - a[ovCatSortMode])
     .slice(0, 8);
-  renderAbsStackedBar('ov-categories-bar', rows, ['negative', 'positive', 'neutral'], 'aspects');
+  document.getElementById('ov-categories-sub').textContent = `Aspekty s ${OV_CAT_SORT_LABEL[ovCatSortMode]}`;
+  renderAbsStackedBar('ov-categories-bar', rows, OV_CAT_SEG_ORDER[ovCatSortMode], 'aspects');
+}
+
+function initOverviewCategorySort() {
+  [['ov-cat-sort-total', 'total'], ['ov-cat-sort-negative', 'negative'], ['ov-cat-sort-positive', 'positive'], ['ov-cat-sort-neutral', 'neutral']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      ovCatSortMode = mode;
+      document.querySelectorAll('#ov-cat-sort-total, #ov-cat-sort-negative, #ov-cat-sort-positive, #ov-cat-sort-neutral').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderOverviewCategories();
+    });
+  });
 }
 
 function renderOverviewDonut() {
@@ -4593,6 +4624,7 @@ Promise.all([
   initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
   initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
   initKeywordsControls();
+  initOverviewCategorySort();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
