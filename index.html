@@ -1668,6 +1668,7 @@
 
     <div class="card exec-summary-card">
       <h2>Strategická doporučení</h2>
+      <p class="sub">Prioritizujte/Funguje dobře jsou vybrané podle tempa změny (rychlost růstu), ne podle celkového objemu — malý aspekt může rychle růst, aniž by patřil mezi největší kategorie. Pro objem viz tabulku kategorií níže.</p>
       <div id="monthly-ov-recommendations" class="exec-summary-body"></div>
     </div>
 
@@ -3914,7 +3915,7 @@ function renderExecutiveSummary() {
   const topNeg = flattenTrend(computeSentimentTrendByCategory('negative')).sort((a, b) => b.delta - a.delta)[0];
   const topPos = flattenTrend(computeSentimentTrendByCategory('positive')).sort((a, b) => b.delta - a.delta)[0];
 
-  let html = `<p>V měsíci <b>${monthLabel}</b> bylo zaznamenáno <b>${cur.total.toLocaleString('cs-CZ')}</b> zmínek o Tesla Model Y${deltaText}, z toho <b>${posShare} %</b> pozitivních.</p>`;
+  let html = `<p>V měsíci <b>${monthLabel}</b> bylo zaznamenáno <b>${cur.total.toLocaleString('cs-CZ')}</b> zmínek o Tesla Model Y${deltaText}, z toho <b>${posShare} %</b> pozitivních.</p><p class="reco-sub" style="margin-top:-4px;">Níže: nejrychleji rostoucí trendy (podle tempa změny, ne podle celkové velikosti) — pro srovnání podle objemu viz „Top 8 kategorií" níže.</p>`;
 
   if (topNeg) {
     const domain = CATEGORY_DOMAIN_CZ[topNeg.category] || topNeg.category;
@@ -3924,7 +3925,7 @@ function renderExecutiveSummary() {
     let extra = '';
     if (topTag && topTag.name !== topNeg.label) extra += `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
-    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b>${tagInline} — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+    html += `<p class="risk">Nejrychleji rostoucí riziko: <b>${topNeg.label}</b>${tagInline} — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b> (${topNeg.may} → ${topNeg.jul} zmínek).<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topNeg.key}" data-label="${topNeg.label}" data-category="${topNeg.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   }
   if (topPos) {
@@ -3934,7 +3935,7 @@ function renderExecutiveSummary() {
     const extraPos = (topTagPos && topTagPos.name !== topPos.label)
       ? `<span class="reco-sub">Podrobněji: ${topTagPos.name} — ${topTagPos.mayV} → ${topTagPos.julV} zmínek</span>`
       : '';
-    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b>${tagInlinePos} — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+    html += `<p class="win">Nejrychleji rostoucí zlepšení: <b>${topPos.label}</b>${tagInlinePos} — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b> (${topPos.may} → ${topPos.jul} zmínek).<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topPos.key}" data-label="${topPos.label}" data-category="${topPos.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extraPos}</p>`;
   }
   if (!topNeg && !topPos) {
@@ -4442,7 +4443,7 @@ function renderMonthlyRecommendations() {
     let extra = '';
     if (topTag && topTag.name !== t.label) extra += `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
-    html += `<p class="risk">Prioritizujte: <b>${t.label}</b>${tagInline} — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
+    html += `<p class="risk">Prioritizujte: <b>${t.label}</b>${tagInline} — negativita roste (+${t.delta.toFixed(0)} % od května, ${t.may} → ${t.jul} zmínek). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
   if (!topNegAll.length) html += '';
@@ -4475,7 +4476,7 @@ function renderMonthlyRecommendations() {
     const extra = (topTag && topTag.name !== t.label)
       ? `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`
       : '';
-    html += `<p class="win">Funguje dobře: <b>${t.label}</b>${tagInline} — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>
+    html += `<p class="win">Funguje dobře: <b>${t.label}</b>${tagInline} — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května, ${t.may} → ${t.jul} zmínek). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
 
