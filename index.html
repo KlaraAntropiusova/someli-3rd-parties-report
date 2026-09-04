@@ -1780,19 +1780,6 @@
           <select id="if-month"><option value="">Vše</option></select>
         </div>
       </div>
-      <div class="toolbar" style="margin-bottom:14px;">
-        <div class="legend" style="margin-bottom:0;">
-          <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
-          <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
-          <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
-        </div>
-        <div class="view-toggle">
-          <button id="if-sort-total" class="active">Podle objemu</button>
-          <button id="if-sort-negative">Nejvíc negativních</button>
-          <button id="if-sort-positive">Nejvíc pozitivních</button>
-          <button id="if-sort-neutral">Nejvíc neutrálních</button>
-        </div>
-      </div>
       <table>
         <thead>
           <tr>
@@ -1801,9 +1788,6 @@
             <th>Issue</th>
             <th>Měsíc</th>
             <th style="text-align:right;">Zmínky</th>
-            <th style="text-align:right;">Pozitivní</th>
-            <th style="text-align:right;">Neutrální</th>
-            <th style="text-align:right;">Negativní</th>
           </tr>
         </thead>
         <tbody id="issues-body"></tbody>
@@ -2717,26 +2701,11 @@ function initIssuesFilters() {
   monthSelect.addEventListener('change', renderIssues);
 }
 
-let issuesSortMode = 'total'; // 'total' | 'negative' | 'positive' | 'neutral'
-const ISSUES_SORT_LABEL = { total: 'počtu zmínek', negative: 'počtu negativních zmínek', positive: 'počtu pozitivních zmínek', neutral: 'počtu neutrálních zmínek' };
-
-function initIssuesSort() {
-  [['if-sort-total', 'total'], ['if-sort-negative', 'negative'], ['if-sort-positive', 'positive'], ['if-sort-neutral', 'neutral']].forEach(([id, mode]) => {
-    document.getElementById(id).addEventListener('click', () => {
-      issuesSortMode = mode;
-      document.querySelectorAll('#if-sort-total, #if-sort-negative, #if-sort-positive, #if-sort-neutral').forEach(b => b.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      renderIssues();
-    });
-  });
-}
-
 function renderIssues() {
   const body = document.getElementById('issues-body');
   body.innerHTML = '';
   const months = monthsInGlobalRange();
   const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
-  const sentPrefix = VERIFIED_ONLY ? 'v_' : '';
   const aspectFilter = document.getElementById('if-aspect').value;
   const issueFilter = document.getElementById('if-issue').value;
   const monthFilter = document.getElementById('if-month').value;
@@ -2745,15 +2714,10 @@ function renderIssues() {
   if (aspectFilter) filtered = filtered.filter(issue => issue.aspect_label === aspectFilter);
   if (issueFilter) filtered = filtered.filter(issue => issue.label === issueFilter);
   if (monthFilter) filtered = filtered.filter(issue => issue.month.split('_').slice(0, 2).join('-') === monthFilter);
-  filtered = filtered.map(issue => {
-    const sc = (ISSUE_CLUSTER_SENTIMENT && ISSUE_CLUSTER_SENTIMENT[issue.cluster_key]) || { positive: 0, neutral: 0, negative: 0, v_positive: 0, v_neutral: 0, v_negative: 0 };
-    return { issue, positive: sc[sentPrefix + 'positive'], neutral: sc[sentPrefix + 'neutral'], negative: sc[sentPrefix + 'negative'] };
-  });
-  const sortKey = issuesSortMode === 'total' ? null : issuesSortMode;
-  filtered.sort((a, b) => sortKey ? b[sortKey] - a[sortKey] : b.issue[countField] - a.issue[countField]);
+  filtered = filtered.slice().sort((a, b) => b[countField] - a[countField]);
   document.getElementById('issues-sub').textContent =
-    `${filtered.length} shluků problémů/témat (z ${SENT.issues.length}) seřazených podle ${ISSUES_SORT_LABEL[issuesSortMode]} · klikni na řádek pro detail a ukázky citací`;
-  filtered.forEach(({ issue, positive, neutral, negative }, i) => {
+    `${filtered.length} shluků problémů/témat (z ${SENT.issues.length}) seřazených podle počtu zmínek · klikni na řádek pro detail a ukázky citací`;
+  filtered.forEach((issue, i) => {
     const tr = document.createElement('tr');
     tr.className = 'issue-row';
     tr.innerHTML = `
@@ -2762,13 +2726,10 @@ function renderIssues() {
       <td>${issue.label}</td>
       <td>${issue.month}</td>
       <td class="num">${issue[countField]}</td>
-      <td class="num">${positive}</td>
-      <td class="num">${neutral}</td>
-      <td class="num">${negative}</td>
     `;
     const detailTr = document.createElement('tr');
     const detailTd = document.createElement('td');
-    detailTd.colSpan = 8;
+    detailTd.colSpan = 5;
     detailTd.style.padding = '0';
     const detail = document.createElement('div');
     detail.className = 'issue-detail';
@@ -4799,7 +4760,6 @@ let EXAMPLES = null;
 let TAG_SENTIMENT = null;
 let KEYWORDS = null;
 let ISSUE_CLUSTER_MENTIONS = null;
-let ISSUE_CLUSTER_SENTIMENT = null;
 const CACHE_BUST = Date.now();
 const jf = name => fetch(`${name}?v=${CACHE_BUST}`, { cache: 'no-store' }).then(r => r.json());
 Promise.all([
@@ -4812,9 +4772,8 @@ Promise.all([
   jf('mentions_data.json'),
   jf('tag_sentiment_data.json'),
   jf('keywords_data.json'),
-  jf('issue_cluster_mentions_data.json'),
-  jf('issue_cluster_sentiment_data.json')
-]).then(([tagsData, sentData, issuesTrendData, sourcesData, dailyData, examplesData, mentionsData, tagSentimentData, keywordsData, issueClusterMentionsData, issueClusterSentimentData]) => {
+  jf('issue_cluster_mentions_data.json')
+]).then(([tagsData, sentData, issuesTrendData, sourcesData, dailyData, examplesData, mentionsData, tagSentimentData, keywordsData, issueClusterMentionsData]) => {
   DATA = tagsData;
   SENT = sentData;
   ISSUES_TREND = issuesTrendData;
@@ -4825,7 +4784,6 @@ Promise.all([
   TAG_SENTIMENT = tagSentimentData;
   KEYWORDS = keywordsData;
   ISSUE_CLUSTER_MENTIONS = issueClusterMentionsData;
-  ISSUE_CLUSTER_SENTIMENT = issueClusterSentimentData;
   document.getElementById('meta-mentions').textContent = SENT.meta.total_mentions.toLocaleString('cs-CZ');
   document.getElementById('meta-tags').textContent = DATA.total_tags;
   document.querySelectorAll('.verified-banner .verified-seg-btn').forEach(b =>
@@ -4836,7 +4794,6 @@ Promise.all([
   renderMentionsTable();
   initTrendCategoryFilters();
   initIssuesFilters();
-  initIssuesSort();
   initIssuesTrendFilters();
   initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
   initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
