@@ -1571,8 +1571,17 @@
     </div>
 
     <div class="card">
-      <h2>Sentiment podle dne</h2>
-      <p class="sub" id="ov-line-sub">Květen–červenec 2026</p>
+      <div class="toolbar">
+        <div>
+          <h2>Sentiment v čase</h2>
+          <p class="sub" id="ov-line-sub">Květen–červenec 2026</p>
+        </div>
+        <div class="view-toggle">
+          <button id="ov-line-gran-day" class="active">Den</button>
+          <button id="ov-line-gran-week">Týden</button>
+          <button id="ov-line-gran-month">Měsíc</button>
+        </div>
+      </div>
       <div id="ov-line-chart"></div>
     </div>
 
@@ -3204,6 +3213,14 @@ function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, r
     const v = source[d] || { positive: 0, neutral: 0, negative: 0 };
     return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
   });
+  const ticks = ['2026-05-01', '2026-06-01', '2026-07-01']
+    .map(d => ({ d, i: series.findIndex(s => s.day === d) }))
+    .filter(t => t.i >= 0)
+    .map(t => ({ i: t.i, label: t.d.slice(0, 7) }));
+  renderMultiLineChart(containerId, idPrefix, H, series, onDayClick, ticks);
+}
+
+function renderMultiLineChart(containerId, idPrefix, H, series, onDayClick, ticks) {
   const W = 1000, padL = 34, padB = 18, padT = 6;
   const maxV = Math.max(1, ...series.map(s => Math.max(s.total, s.positive, s.negative)));
   const x = i => padL + (i / Math.max(1, series.length - 1)) * (W - padL - 8);
@@ -3214,11 +3231,7 @@ function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, r
     const yy = y(v);
     return `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${W - 4}" y2="${yy}"/><text class="axis-label" x="2" y="${yy + 3}">${v}</text>`;
   }).join('');
-  const monthTicks = ['2026-05-01', '2026-06-01', '2026-07-01']
-    .map(d => ({ d, i: series.findIndex(s => s.day === d) }))
-    .filter(t => t.i >= 0)
-    .map(t => `<text class="axis-label" x="${x(t.i)}" y="${H - 2}">${t.d.slice(0,7)}</text>`)
-    .join('');
+  const tickMarks = (ticks || []).map(t => `<text class="axis-label" x="${x(t.i)}" y="${H - 2}">${t.label}</text>`).join('');
   const svg = `
     <svg class="line-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="${idPrefix}-line-svg" style="height:${H}px;">
       ${gridLines}
@@ -3226,7 +3239,7 @@ function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, r
       <path class="line-path pos" d="${pathFor('positive')}"/>
       <path class="line-path neg" d="${pathFor('negative')}"/>
       <path class="line-path neutral" d="${pathFor('neutral')}"/>
-      ${monthTicks}
+      ${tickMarks}
       <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-total" fill="var(--accent-warm)" style="display:none"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-pos" fill="var(--pos)" style="display:none"/>
@@ -3275,7 +3288,7 @@ function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, r
     const dot = dotByKey[key];
     dot.style.display = '';
     dot.setAttribute('cx', x(i)); dot.setAttribute('cy', y(s[key]));
-    showTooltip(e, `${s.day} — ${SENT_WORD[key]}: ${s[key]}`);
+    showTooltip(e, `${s.label || s.day} — ${SENT_WORD[key]}: ${s[key]}`);
   });
   target.addEventListener('mouseleave', () => {
     [dotTotal, dotPos, dotNeg, dotNeutral].forEach(d => d.style.display = 'none');
@@ -3291,9 +3304,66 @@ function renderDailyLineChart(containerId, idPrefix, H, onDayClick, dailyData, r
   }
 }
 
+let ovLineGranularity = 'day'; // 'day' | 'week' | 'month'
+
+function isoWeekStart(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const dow = (d.getUTCDay() + 6) % 7; // 0 = Monday
+  d.setUTCDate(d.getUTCDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+
+function aggregateDailyStatsBy(granularity, range) {
+  const daily = trueDailyStats();
+  const days = dateRange(range.from, range.to);
+  if (granularity === 'day') {
+    return days.map(d => {
+      const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
+      return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
+    });
+  }
+  const bucketKey = granularity === 'month' ? (d => d.slice(0, 7)) : isoWeekStart;
+  const bucketLabel = granularity === 'month' ? (k => MONTH_NAMES_CZ[k] || k) : (k => k.slice(5));
+  const buckets = {};
+  const order = [];
+  days.forEach(d => {
+    const key = bucketKey(d);
+    if (!buckets[key]) { buckets[key] = { day: key, label: bucketLabel(key), positive: 0, neutral: 0, negative: 0, total: 0 }; order.push(key); }
+    const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
+    const b = buckets[key];
+    b.positive += v.positive; b.neutral += v.neutral; b.negative += v.negative;
+    b.total += v.positive + v.neutral + v.negative;
+  });
+  order.sort();
+  return order.map(k => buckets[k]);
+}
+
+function ticksForGranularity(series, granularity) {
+  if (granularity === 'day') {
+    return ['2026-05-01', '2026-06-01', '2026-07-01']
+      .map(d => ({ d, i: series.findIndex(s => s.day === d) }))
+      .filter(t => t.i >= 0)
+      .map(t => ({ i: t.i, label: t.d.slice(0, 7) }));
+  }
+  return series.map((s, i) => ({ i, label: s.label }));
+}
+
 function renderOverviewLineChart() {
   document.getElementById('ov-line-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
-  renderDailyLineChart('ov-line-chart', 'ov', 170);
+  const series = aggregateDailyStatsBy(ovLineGranularity, GLOBAL_RANGE);
+  const ticks = ticksForGranularity(series, ovLineGranularity);
+  renderMultiLineChart('ov-line-chart', 'ov', 170, series, null, ticks);
+}
+
+function initOverviewLineGranularity() {
+  [['ov-line-gran-day', 'day'], ['ov-line-gran-week', 'week'], ['ov-line-gran-month', 'month']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      ovLineGranularity = mode;
+      document.querySelectorAll('#ov-line-gran-day, #ov-line-gran-week, #ov-line-gran-month').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderOverviewLineChart();
+    });
+  });
 }
 
 function describeGaugeArc(cx, cy, r, valueFrom, valueTo) {
@@ -4651,6 +4721,7 @@ Promise.all([
   initKeywordsControls();
   initOverviewCategorySort();
   initOverviewSourceSort();
+  initOverviewLineGranularity();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
