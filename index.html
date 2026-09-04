@@ -1576,10 +1576,16 @@
           <h2>Sentiment v čase</h2>
           <p class="sub" id="ov-line-sub">Květen–červenec 2026</p>
         </div>
-        <div class="view-toggle">
-          <button id="ov-line-gran-day" class="active">Den</button>
-          <button id="ov-line-gran-week">Týden</button>
-          <button id="ov-line-gran-month">Měsíc</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="view-toggle">
+            <button id="ov-line-type-line" class="active">Čára</button>
+            <button id="ov-line-type-bar">Sloupce</button>
+          </div>
+          <div class="view-toggle">
+            <button id="ov-line-gran-day" class="active">Den</button>
+            <button id="ov-line-gran-week">Týden</button>
+            <button id="ov-line-gran-month">Měsíc</button>
+          </div>
         </div>
       </div>
       <div id="ov-line-chart"></div>
@@ -3348,11 +3354,83 @@ function ticksForGranularity(series, granularity) {
   return series.map((s, i) => ({ i, label: s.label }));
 }
 
+function renderStackedBarChart(containerId, idPrefix, H, series, ticks) {
+  const W = 1000, padL = 34, padB = 18, padT = 6;
+  const maxV = Math.max(1, ...series.map(s => s.total));
+  const n = Math.max(1, series.length);
+  const plotW = W - padL - 8;
+  const slot = plotW / n;
+  const barW = Math.max(1, slot * 0.7);
+  const xCenter = i => padL + slot * i + slot / 2;
+  const y = v => padT + (1 - v / maxV) * (H - padT - padB);
+  const barBottom = H - padB;
+
+  const gridLines = Array.from({length: 4}, (_, i) => {
+    const v = Math.round((maxV / 3) * i);
+    const yy = y(v);
+    return `<line class="grid-line" x1="${padL}" y1="${yy}" x2="${W - 4}" y2="${yy}"/><text class="axis-label" x="2" y="${yy + 3}">${v}</text>`;
+  }).join('');
+
+  const bars = series.map((s, i) => {
+    const x0 = (xCenter(i) - barW / 2).toFixed(1);
+    const yNegTop = y(s.negative);
+    const yPosTop = y(s.negative + s.positive);
+    const yNeuTop = y(s.negative + s.positive + s.neutral);
+    const negH = Math.max(0, barBottom - yNegTop);
+    const posH = Math.max(0, yNegTop - yPosTop);
+    const neuH = Math.max(0, yPosTop - yNeuTop);
+    return `
+      <rect x="${x0}" y="${yNegTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${negH.toFixed(1)}" fill="var(--neg)"/>
+      <rect x="${x0}" y="${yPosTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${posH.toFixed(1)}" fill="var(--pos)"/>
+      <rect x="${x0}" y="${yNeuTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${neuH.toFixed(1)}" fill="var(--neutral-fill)"/>
+      <rect class="bar-hit" data-i="${i}" x="${(padL + slot * i).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}" fill="transparent"/>`;
+  }).join('');
+
+  const tickMarks = (ticks || []).map(t => `<text class="axis-label" x="${xCenter(t.i)}" y="${H - 2}">${t.label}</text>`).join('');
+
+  const svg = `
+    <svg class="line-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" id="${idPrefix}-line-svg" style="height:${H}px;">
+      ${gridLines}
+      ${bars}
+      ${tickMarks}
+    </svg>
+    <div class="legend" style="margin-top:8px;margin-bottom:0;">
+      <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
+      <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
+      <span><span class="swatch" style="background:var(--neutral-fill)"></span>neutrální</span>
+    </div>`;
+  const container = document.getElementById(containerId);
+  container.innerHTML = svg;
+  container.querySelectorAll('.bar-hit').forEach(hit => {
+    const s = series[parseInt(hit.dataset.i, 10)];
+    hit.addEventListener('mousemove', e => showTooltip(e,
+      `${s.label || s.day} — celkem: ${s.total} · pozitivní: ${s.positive} · negativní: ${s.negative} · neutrální: ${s.neutral}`));
+    hit.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+let ovLineChartType = 'line'; // 'line' | 'bar'
+
+function initOverviewLineChartType() {
+  [['ov-line-type-line', 'line'], ['ov-line-type-bar', 'bar']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      ovLineChartType = mode;
+      document.querySelectorAll('#ov-line-type-line, #ov-line-type-bar').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderOverviewLineChart();
+    });
+  });
+}
+
 function renderOverviewLineChart() {
   document.getElementById('ov-line-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
   const series = aggregateDailyStatsBy(ovLineGranularity, GLOBAL_RANGE);
   const ticks = ticksForGranularity(series, ovLineGranularity);
-  renderMultiLineChart('ov-line-chart', 'ov', 170, series, null, ticks);
+  if (ovLineChartType === 'bar') {
+    renderStackedBarChart('ov-line-chart', 'ov', 170, series, ticks);
+  } else {
+    renderMultiLineChart('ov-line-chart', 'ov', 170, series, null, ticks);
+  }
 }
 
 function initOverviewLineGranularity() {
@@ -4722,6 +4800,7 @@ Promise.all([
   initOverviewCategorySort();
   initOverviewSourceSort();
   initOverviewLineGranularity();
+  initOverviewLineChartType();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
