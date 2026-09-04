@@ -3712,17 +3712,31 @@ function renderExecutiveSummary() {
 
   if (topNeg) {
     const domain = CATEGORY_DOMAIN_CZ[topNeg.category] || topNeg.category;
-    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b> — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span></p>`;
+    const topIssue = getAspectTopIssueSummary(topNeg.key, [cur.month]);
+    const topTag = getAspectTopDrivingTag(topNeg.category, topNeg.label, 'negative');
+    let extra = '';
+    if (topTag && topTag.name !== topNeg.label) extra += `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
+    if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
+    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b> — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+      <button class="mention-link trend-detail-btn" data-key="${topNeg.key}" data-label="${topNeg.label}" data-category="${topNeg.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   }
   if (topPos) {
     const domain = CATEGORY_DOMAIN_CZ[topPos.category] || topPos.category;
-    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span></p>`;
+    const topTagPos = getAspectTopDrivingTag(topPos.category, topPos.label, 'positive');
+    const extraPos = (topTagPos && topTagPos.name !== topPos.label)
+      ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTagPos.name}</b> (${topTagPos.mayV} → ${topTagPos.julV} zmínek)</span>`
+      : '';
+    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>${extraPos}</p>`;
   }
   if (!topNeg && !topPos) {
     html += `<p>Žádný aspekt nemá dostatek dat pro spolehlivé srovnání trendu.</p>`;
   }
 
-  document.getElementById('ov-exec-summary').innerHTML = html;
+  const execEl = document.getElementById('ov-exec-summary');
+  execEl.innerHTML = html;
+  execEl.querySelectorAll('.trend-detail-btn').forEach(btn => {
+    btn.addEventListener('click', () => openTrendDetail(btn.dataset.key, btn.dataset.label, btn.dataset.category));
+  });
 }
 
 /* ---------- daily overview (day-to-day operations) ---------- */
