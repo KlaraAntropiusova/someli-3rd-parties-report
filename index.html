@@ -1544,8 +1544,18 @@
 
     <div class="overview-grid grid-2-1">
       <div class="card">
-        <h2>Zmínky podle zdroje</h2>
-        <p class="sub">Top 6 domén · negativní / pozitivní / neutrální</p>
+        <div class="toolbar">
+          <div>
+            <h2>Zmínky podle zdroje</h2>
+            <p class="sub" id="ov-sources-sub">Top 6 domén · negativní / pozitivní / neutrální</p>
+          </div>
+          <div class="view-toggle">
+            <button id="ov-src-sort-total" class="active">Podle objemu</button>
+            <button id="ov-src-sort-negative">Nejvíc negativních</button>
+            <button id="ov-src-sort-positive">Nejvíc pozitivních</button>
+            <button id="ov-src-sort-neutral">Nejvíc neutrálních</button>
+          </div>
+        </div>
         <div class="legend">
           <span><span class="swatch" style="background:var(--neg)"></span>negativní</span>
           <span><span class="swatch" style="background:var(--pos)"></span>pozitivní</span>
@@ -3102,14 +3112,29 @@ function renderOverviewCompare() {
   return { cur, prev };
 }
 
+let ovSrcSortMode = 'total'; // 'total' | 'negative' | 'positive' | 'neutral'
+const OV_SRC_SORT_LABEL = { total: 'nejvyšším objemem zmínek', negative: 'nejvíc negativních zmínek', positive: 'nejvíc pozitivních zmínek', neutral: 'nejvíc neutrálních zmínek' };
+
 function renderOverviewSources() {
   const months = monthsInGlobalRange();
   const rows = SOURCES.sources
     .filter(s => s.source !== 'Ostatní')
     .map(s => ({ label: s.source, key: s.source, ...sumMonthly(s.monthly, months) }))
-    .sort((a, b) => b.total - a.total)
+    .sort((a, b) => b[ovSrcSortMode] - a[ovSrcSortMode])
     .slice(0, 6);
-  renderAbsStackedBar('ov-sources-bar', rows, ['negative', 'positive', 'neutral'], 'sources');
+  document.getElementById('ov-sources-sub').textContent = `Top 6 domén s ${OV_SRC_SORT_LABEL[ovSrcSortMode]}`;
+  renderAbsStackedBar('ov-sources-bar', rows, OV_CAT_SEG_ORDER[ovSrcSortMode], 'sources');
+}
+
+function initOverviewSourceSort() {
+  [['ov-src-sort-total', 'total'], ['ov-src-sort-negative', 'negative'], ['ov-src-sort-positive', 'positive'], ['ov-src-sort-neutral', 'neutral']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      ovSrcSortMode = mode;
+      document.querySelectorAll('#ov-src-sort-total, #ov-src-sort-negative, #ov-src-sort-positive, #ov-src-sort-neutral').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderOverviewSources();
+    });
+  });
 }
 
 let ovCatSortMode = 'total'; // 'total' | 'negative' | 'positive' | 'neutral'
@@ -4625,6 +4650,7 @@ Promise.all([
   initTrendingFilters('positive', 'trend-pos-category', 'trend-pos-aspect', renderTrendingPositive);
   initKeywordsControls();
   initOverviewCategorySort();
+  initOverviewSourceSort();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
