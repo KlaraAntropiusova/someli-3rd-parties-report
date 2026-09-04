@@ -3716,19 +3716,21 @@ function renderExecutiveSummary() {
     const domain = CATEGORY_DOMAIN_CZ[topNeg.category] || topNeg.category;
     const topIssue = getAspectTopIssueSummary(topNeg.key, [cur.month]);
     const topTag = getAspectTopDrivingTag(topNeg.category, topNeg.label, 'negative');
+    const tagInline = (topTag && topTag.name !== topNeg.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     let extra = '';
-    if (topTag && topTag.name !== topNeg.label) extra += `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
+    if (topTag && topTag.name !== topNeg.label) extra += `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
-    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b> — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+    html += `<p class="risk">Hlavní riziko: <b>${topNeg.label}</b>${tagInline} — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topNeg.key}" data-label="${topNeg.label}" data-category="${topNeg.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   }
   if (topPos) {
     const domain = CATEGORY_DOMAIN_CZ[topPos.category] || topPos.category;
     const topTagPos = getAspectTopDrivingTag(topPos.category, topPos.label, 'positive');
+    const tagInlinePos = (topTagPos && topTagPos.name !== topPos.label) ? ` (konkrétně <b>${topTagPos.name}</b>)` : '';
     const extraPos = (topTagPos && topTagPos.name !== topPos.label)
-      ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTagPos.name}</b> (${topTagPos.mayV} → ${topTagPos.julV} zmínek)</span>`
+      ? `<span class="reco-sub">Podrobněji: ${topTagPos.name} — ${topTagPos.mayV} → ${topTagPos.julV} zmínek</span>`
       : '';
-    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b> — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
+    html += `<p class="win">Hlavní zlepšení: <b>${topPos.label}</b>${tagInlinePos} — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b>.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topPos.key}" data-label="${topPos.label}" data-category="${topPos.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extraPos}</p>`;
   }
   if (!topNeg && !topPos) {
@@ -4232,10 +4234,11 @@ function renderMonthlyRecommendations() {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
     const topIssue = getAspectTopIssueSummary(t.key, activeMonths);
     const topTag = getAspectTopDrivingTag(t.category, t.label, 'negative');
+    const tagInline = (topTag && topTag.name !== t.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     let extra = '';
-    if (topTag && topTag.name !== t.label) extra += `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
+    if (topTag && topTag.name !== t.label) extra += `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
-    html += `<p class="risk">Prioritizujte: <b>${t.label}</b> — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
+    html += `<p class="risk">Prioritizujte: <b>${t.label}</b>${tagInline} — negativita roste (+${t.delta.toFixed(0)} % od května). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
   if (!topNegAll.length) html += '';
@@ -4264,10 +4267,11 @@ function renderMonthlyRecommendations() {
   topPosAll.slice(0, 2).forEach(t => {
     const domain = CATEGORY_DOMAIN_CZ[t.category] || t.category;
     const topTag = getAspectTopDrivingTag(t.category, t.label, 'positive');
+    const tagInline = (topTag && topTag.name !== t.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     const extra = (topTag && topTag.name !== t.label)
-      ? `<span class="reco-sub">Konkrétně nejvíc roste: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`
+      ? `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`
       : '';
-    html += `<p class="win">Funguje dobře: <b>${t.label}</b> — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>
+    html += `<p class="win">Funguje dobře: <b>${t.label}</b>${tagInline} — pozitivní zmínky rostou (+${t.delta.toFixed(0)} % od května). Stojí za zdůraznění v externí komunikaci.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
 
