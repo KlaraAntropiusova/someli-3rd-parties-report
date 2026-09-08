@@ -1126,6 +1126,30 @@
     margin-top: 3px;
   }
   .exec-summary-body .reco-sub b { color: var(--text-secondary); }
+  .action-advice {
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    line-height: 1.5;
+    border-radius: 8px;
+    padding: 7px 10px;
+    margin: 2px 0 8px;
+  }
+  .action-advice .action-label {
+    flex: none;
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding-top: 1px;
+  }
+  .action-advice.do { background: color-mix(in srgb, var(--pos) 12%, transparent); color: var(--text-secondary); }
+  .action-advice.do .action-label { color: var(--pos); }
+  .action-advice.avoid { background: color-mix(in srgb, var(--text-muted) 14%, transparent); color: var(--text-secondary); }
+  .action-advice.avoid .action-label { color: var(--text-muted); }
+  .action-advice.caution { background: color-mix(in srgb, var(--accent-warm) 14%, transparent); color: var(--text-secondary); }
+  .action-advice.caution .action-label { color: var(--accent-warm); }
   .exec-summary-body ul { margin: 0 0 10px; padding: 0; list-style: none; }
   .exec-summary-body ul:last-child { margin-bottom: 0; }
   .exec-summary-body li {
@@ -4261,6 +4285,48 @@ function exampleQuoteHtml(mention) {
   return `<p class="reco-example">Příklad: „${short}“ <a class="mention-link" href="${mention.url}" target="_blank" rel="noopener noreferrer">zdroj →</a></p>`;
 }
 
+function sourceConcentrationForMentions(mentions) {
+  if (!mentions.length) return null;
+  const byDomain = {};
+  let verifiedCount = 0;
+  mentions.forEach(m => {
+    byDomain[m.domain] = (byDomain[m.domain] || 0) + 1;
+    if (m.verified) verifiedCount += 1;
+  });
+  const [topDomain, topCount] = Object.entries(byDomain).sort((a, b) => b[1] - a[1])[0];
+  return { topDomain, topShare: topCount / mentions.length, verifiedShare: verifiedCount / mentions.length, total: mentions.length };
+}
+
+function actionAdviceHtml(kind, mentions) {
+  const conc = sourceConcentrationForMentions(mentions);
+  if (!conc) return '';
+  const pct = x => Math.round(x * 100);
+
+  if (conc.total < 5) {
+    return `<div class="action-advice caution"><span class="action-label">Malý vzorek</span><span>Jde jen o ${conc.total} zmínky/zmínek — i výrazná procentuální změna může být šum, sledujte spíš vývoj v čase než jednorázové číslo.</span></div>`;
+  }
+
+  if (kind === 'watch-pos') {
+    if (conc.verifiedShare >= 0.4) {
+      return `<div class="action-advice do"><span class="action-label">Dělat</span><span>Podíl ověřených zmínek je vysoký (${pct(conc.verifiedShare)} %) — vhodné pro amplifikaci v komunikaci nebo marketingu.</span></div>`;
+    }
+    return `<div class="action-advice caution"><span class="action-label">Ověřit</span><span>Jen ${pct(conc.verifiedShare)} % zmínek je ověřených — než začnete sdílet, ověřte věrohodnost zdroje.</span></div>`;
+  }
+
+  if (kind === 'source') {
+    if (conc.verifiedShare >= 0.4) {
+      return `<div class="action-advice do"><span class="action-label">Dělat</span><span>${pct(conc.verifiedShare)} % zmínek na tomto zdroji je ověřených — jde pravděpodobně o reálné zákaznické zkušenosti, doporučujeme prioritně zkontrolovat.</span></div>`;
+    }
+    return `<div class="action-advice caution"><span class="action-label">Ověřit</span><span>Jen ${pct(conc.verifiedShare)} % zmínek na tomto zdroji je ověřených — může jít o neautentický obsah nebo diskuzní vlnu, ověřte věrohodnost před reakcí.</span></div>`;
+  }
+
+  if (conc.topShare >= 0.6 && conc.verifiedShare < 0.3) {
+    return `<div class="action-advice avoid"><span class="action-label">Nereagovat plošně</span><span>${pct(conc.topShare)} % zmínek pochází z jednoho zdroje (${conc.topDomain}) a jen ${pct(conc.verifiedShare)} % je ověřených — pravděpodobně jeden článek nebo diskuzní vlna, ne systémový problém.</span></div>`;
+  }
+
+  return `<div class="action-advice do"><span class="action-label">Dělat</span><span>Negativita je rozložena napříč zdroji nebo je z velké části ověřená (${pct(conc.verifiedShare)} %) — doporučujeme dohledat příčinu a připravit reakci.</span></div>`;
+}
+
 function renderDailyRecommendations(series, lastDay, days) {
   const watchNeg = computeDailyWatchlistBySentiment(lastDay, 'negative');
   const watchPos = computeDailyWatchlistBySentiment(lastDay, 'positive');
@@ -4275,6 +4341,7 @@ function renderDailyRecommendations(series, lastDay, days) {
   const nextSparkId = () => `dov-spark-${sparkCounter++}`;
 
   if (spike) {
+    const spikeMentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && m.sentiment === 'negative' && m.date.slice(0, 10) === spike.day);
     const example = findExampleMention(m => m.sentiment === 'negative' && m.date.slice(0, 10) === spike.day);
     const sparkId = nextSparkId();
     sparkJobs.push({
@@ -4285,6 +4352,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident).</p>
+        ${actionAdviceHtml('spike', spikeMentions)}
         <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
@@ -4293,6 +4361,7 @@ function renderDailyRecommendations(series, lastDay, days) {
   watchNeg.slice(0, 3).forEach(w => {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
     const catSeries = categoryDailySentimentSeries(w.category, 'negative', days);
+    const catMentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
     const sparkId = nextSparkId();
     sparkJobs.push({
@@ -4303,6 +4372,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>
+        ${actionAdviceHtml('watch-neg', catMentions)}
         <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
@@ -4311,6 +4381,7 @@ function renderDailyRecommendations(series, lastDay, days) {
   if (topVolNeg) {
     const domain = CATEGORY_DOMAIN_CZ[topVolNeg.category] || topVolNeg.category;
     const catSeries = categoryDailySentimentSeries(topVolNeg.category, 'negative', days);
+    const catMentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(topVolNeg.category));
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(topVolNeg.category));
     const sparkId = nextSparkId();
     sparkJobs.push({
@@ -4321,6 +4392,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>
+        ${actionAdviceHtml('top-vol-neg', catMentions)}
         <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
@@ -4329,6 +4401,7 @@ function renderDailyRecommendations(series, lastDay, days) {
   if (sources[0] && sources[0].negShare > 0) {
     const s = sources[0];
     const srcSeries = sourceDailyVolumeSeries(s.domain, days);
+    const srcMentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && recentDays.has(m.date.slice(0, 10)) && m.domain === s.domain);
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.domain === s.domain);
     const sparkId = nextSparkId();
     sparkJobs.push({
@@ -4339,6 +4412,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
+        ${actionAdviceHtml('source', srcMentions)}
         <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
@@ -4347,6 +4421,7 @@ function renderDailyRecommendations(series, lastDay, days) {
   watchPos.slice(0, 2).forEach(w => {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
     const catSeries = categoryDailySentimentSeries(w.category, 'positive', days);
+    const catMentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && m.sentiment === 'positive' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
     const example = findExampleMention(m => m.sentiment === 'positive' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
     const sparkId = nextSparkId();
     sparkJobs.push({
@@ -4357,6 +4432,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item win">
         <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>
+        ${actionAdviceHtml('watch-pos', catMentions)}
         <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
