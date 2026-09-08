@@ -4369,7 +4369,7 @@ function computeRecurringIssues() {
       months.reduce((s, m) => s + (b.issue[monthsKey][m] || 0), 0) - months.reduce((s, m) => s + (a.issue[monthsKey][m] || 0), 0));
 }
 
-let monthlyRecurringSort = { key: 'activeMonths', dir: 'desc' };
+let monthlyRecurringSort = { key: 'total', dir: 'desc' };
 
 function renderMonthlyRecurring() {
   const recurring = computeRecurringIssues();
