@@ -1676,8 +1676,18 @@
     </div>
 
     <div class="card">
-      <h2>Negativní trend v čase</h2>
-      <p class="sub" id="monthly-ov-chart-sub"></p>
+      <div class="toolbar">
+        <div>
+          <h2>Trend v čase</h2>
+          <p class="sub" id="monthly-ov-chart-sub"></p>
+        </div>
+        <div class="view-toggle">
+          <button id="mov-metric-total">Celkem</button>
+          <button id="mov-metric-positive">Pozitivní</button>
+          <button id="mov-metric-negative" class="active">Negativní</button>
+          <button id="mov-metric-neutral">Neutrální</button>
+        </div>
+      </div>
       <div id="monthly-ov-chart"></div>
     </div>
 
@@ -4544,21 +4554,48 @@ function renderMonthlyRecommendations() {
   });
 }
 
+let monthlyTrendMetric = 'negative'; // 'total' | 'positive' | 'negative' | 'neutral'
+const MOV_METRIC_LABEL = { total: 'celkem', positive: 'pozitivní', negative: 'negativní', neutral: 'neutrální' };
+const MOV_METRIC_COLOR = { total: 'var(--accent-warm)', positive: 'var(--pos)', negative: 'var(--neg)', neutral: 'var(--neutral-fill)' };
+
 function openMonthlyDayDetail(point) {
   const day = point.day;
   const dayMentions = MENTIONS.mentions.filter(m =>
-    (!VERIFIED_ONLY || m.verified) && m.sentiment === 'negative' && m.date.slice(0, 10) === day);
-  openDetailModal(`Negativní zmínky — ${day}`, dayMentions, true);
+    (!VERIFIED_ONLY || m.verified) &&
+    (monthlyTrendMetric === 'total' || m.sentiment === monthlyTrendMetric) &&
+    m.date.slice(0, 10) === day);
+  const label = monthlyTrendMetric === 'total' ? 'Zmínky' : `${MOV_METRIC_LABEL[monthlyTrendMetric][0].toUpperCase()}${MOV_METRIC_LABEL[monthlyTrendMetric].slice(1)} zmínky`;
+  openDetailModal(`${label} — ${day}`, dayMentions, true);
+}
+
+function renderMonthlyTrendChart() {
+  document.getElementById('monthly-ov-chart-sub').textContent =
+    `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · klikni na bod v grafu pro zjištění, čeho se ten den týkaly ${MOV_METRIC_LABEL[monthlyTrendMetric]} zmínky`;
+  const daily = trueDailyStats();
+  const days = dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to);
+  const series = days.map(d => {
+    const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
+    const total = v.positive + v.neutral + v.negative;
+    return { day: d, v: monthlyTrendMetric === 'total' ? total : v[monthlyTrendMetric] };
+  });
+  renderSingleLineChart('monthly-ov-chart', 'mov', 280, series, MOV_METRIC_COLOR[monthlyTrendMetric], openMonthlyDayDetail);
+}
+
+function initMonthlyTrendMetric() {
+  [['mov-metric-total', 'total'], ['mov-metric-positive', 'positive'], ['mov-metric-negative', 'negative'], ['mov-metric-neutral', 'neutral']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      monthlyTrendMetric = mode;
+      document.querySelectorAll('#mov-metric-total, #mov-metric-positive, #mov-metric-negative, #mov-metric-neutral').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderMonthlyTrendChart();
+    });
+  });
 }
 
 function renderMonthlyOverview() {
-  document.getElementById('monthly-ov-chart-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · klikni na bod v grafu pro zjištění, čeho se ten den týkaly negativní zmínky`;
   renderMonthlySummary();
   renderMonthlyStats();
-  const daily = trueDailyStats();
-  const days = dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to);
-  const negSeries = days.map(d => ({ day: d, v: (daily[d] || { negative: 0 }).negative }));
-  renderSingleLineChart('monthly-ov-chart', 'mov', 280, negSeries, 'var(--neg)', openMonthlyDayDetail);
+  renderMonthlyTrendChart();
   renderMonthlyCategoryTable();
   renderMonthlyRecurring();
   renderMonthlyRecommendations();
@@ -4868,6 +4905,7 @@ Promise.all([
   initOverviewSourceSort();
   initOverviewLineGranularity();
   initOverviewLineChartType();
+  initMonthlyTrendMetric();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
