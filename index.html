@@ -1609,10 +1609,26 @@
           <h2>Denní provoz</h2>
           <p class="sub" id="daily-ov-window-sub">Operativní pohled pro každodenní sledování · nezávisle na filtru období nahoře</p>
         </div>
-        <div class="view-toggle">
-          <button id="dov-window-7">7 dní</button>
-          <button id="dov-window-14" class="active">14 dní</button>
-          <button id="dov-window-30">30 dní</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;">
+          <div class="view-toggle">
+            <button id="dov-mode-recent" class="active">Nejnovější dny</button>
+            <button id="dov-mode-week">Vybrat týden</button>
+          </div>
+          <div class="view-toggle" id="dov-recent-controls">
+            <button id="dov-window-7">7 dní</button>
+            <button id="dov-window-14" class="active">14 dní</button>
+            <button id="dov-window-30">30 dní</button>
+          </div>
+          <div class="mentions-filters" id="dov-week-controls" style="display:none;margin:0;">
+            <div class="filter-field">
+              <label>Měsíc</label>
+              <select id="dov-week-month"></select>
+            </div>
+            <div class="filter-field">
+              <label>Týden</label>
+              <select id="dov-week-select"></select>
+            </div>
+          </div>
         </div>
       </div>
       <div id="daily-ov-summary" class="exec-summary-body"></div>
@@ -4068,9 +4084,10 @@ function renderDailyStats(series) {
   `;
 }
 
-function renderRecentNegativeMentions() {
+function renderRecentNegativeMentions(from, to) {
   const recent = MENTIONS.mentions
-    .filter(m => m.sentiment === 'negative' && (!VERIFIED_ONLY || m.verified))
+    .filter(m => m.sentiment === 'negative' && (!VERIFIED_ONLY || m.verified) &&
+      (!from || (m.date.slice(0, 10) >= from && m.date.slice(0, 10) <= to)))
     .slice(0, 5);
   const el = document.getElementById('daily-ov-recent-negative');
   el.innerHTML = recent.length ? recent.map(m => `
@@ -4282,12 +4299,43 @@ function renderDailyRecommendations(series, lastDay, days) {
 }
 
 let dailyOverviewWindow = 14; // 7 | 14 | 30
+let dailyOverviewMode = 'recent'; // 'recent' | 'week'
+let dailyOverviewWeekStart = null; // ISO date (Monday) of the selected week, when mode === 'week'
 
-function buildDailySeries(daily, windowStart, lastDay) {
-  return dateRange(windowStart, lastDay).map(d => {
+function buildDailySeries(daily, windowStart, windowEnd) {
+  return dateRange(windowStart, windowEnd).map(d => {
     const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
     return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
   });
+}
+
+function getIsoWeeksForMonth(monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const starts = new Set();
+  dateRange(`${monthKey}-01`, `${monthKey}-${String(daysInMonth).padStart(2, '0')}`).forEach(d => starts.add(isoWeekStart(d)));
+  return Array.from(starts).sort();
+}
+
+function formatCzShortDate(iso) {
+  const [, m, d] = iso.split('-');
+  return `${parseInt(d, 10)}.${parseInt(m, 10)}.`;
+}
+
+function populateDailyWeekSelectors() {
+  const monthSelect = document.getElementById('dov-week-month');
+  const weekSelect = document.getElementById('dov-week-select');
+  if (!monthSelect.options.length) {
+    monthSelect.innerHTML = ALL_MONTHS.map(m => `<option value="${m}">${MONTH_NAMES_CZ[m] || m}</option>`).join('');
+    monthSelect.value = ALL_MONTHS[ALL_MONTHS.length - 1];
+  }
+  const weekStarts = getIsoWeeksForMonth(monthSelect.value);
+  weekSelect.innerHTML = weekStarts.map((ws, i) =>
+    `<option value="${ws}">${i + 1}. týden (${formatCzShortDate(ws)}–${formatCzShortDate(addDays(ws, 6))})</option>`).join('');
+  if (!dailyOverviewWeekStart || !weekStarts.includes(dailyOverviewWeekStart)) {
+    dailyOverviewWeekStart = weekStarts[weekStarts.length - 1];
+  }
+  weekSelect.value = dailyOverviewWeekStart;
 }
 
 function initDailyOverviewWindow() {
@@ -4298,6 +4346,33 @@ function initDailyOverviewWindow() {
       document.getElementById(id).classList.add('active');
       renderDailyOverview();
     });
+  });
+
+  document.getElementById('dov-mode-recent').addEventListener('click', () => {
+    dailyOverviewMode = 'recent';
+    document.getElementById('dov-mode-recent').classList.add('active');
+    document.getElementById('dov-mode-week').classList.remove('active');
+    document.getElementById('dov-recent-controls').style.display = '';
+    document.getElementById('dov-week-controls').style.display = 'none';
+    renderDailyOverview();
+  });
+  document.getElementById('dov-mode-week').addEventListener('click', () => {
+    dailyOverviewMode = 'week';
+    document.getElementById('dov-mode-week').classList.add('active');
+    document.getElementById('dov-mode-recent').classList.remove('active');
+    document.getElementById('dov-recent-controls').style.display = 'none';
+    document.getElementById('dov-week-controls').style.display = '';
+    populateDailyWeekSelectors();
+    renderDailyOverview();
+  });
+  document.getElementById('dov-week-month').addEventListener('change', () => {
+    dailyOverviewWeekStart = null;
+    populateDailyWeekSelectors();
+    renderDailyOverview();
+  });
+  document.getElementById('dov-week-select').addEventListener('change', e => {
+    dailyOverviewWeekStart = e.target.value;
+    renderDailyOverview();
   });
 }
 
@@ -4312,19 +4387,28 @@ function renderDailyOverview() {
   renderDailyStats(statsSeries);
   renderDailySummaryBlock(statsSeries);
 
-  const windowStart = addDays(lastDay, -(dailyOverviewWindow - 1));
-  const days = dateRange(windowStart, lastDay);
-  const series = buildDailySeries(daily, windowStart, lastDay);
+  let windowStart, windowEnd, windowLabel;
+  if (dailyOverviewMode === 'week' && dailyOverviewWeekStart) {
+    windowStart = dailyOverviewWeekStart;
+    windowEnd = addDays(dailyOverviewWeekStart, 6);
+    windowLabel = `vybraný týden (${windowStart} – ${windowEnd})`;
+  } else {
+    windowEnd = lastDay;
+    windowStart = addDays(lastDay, -(dailyOverviewWindow - 1));
+    windowLabel = `posledních ${dailyOverviewWindow} dní dostupných dat (${windowStart} – ${windowEnd})`;
+  }
+  const days = dateRange(windowStart, windowEnd);
+  const series = buildDailySeries(daily, windowStart, windowEnd);
 
   document.getElementById('daily-ov-window-sub').textContent =
-    `Operativní pohled pro každodenní sledování · posledních ${dailyOverviewWindow} dní dostupných dat (${windowStart} – ${lastDay}), nezávisle na filtru období nahoře`;
-  document.getElementById('daily-ov-chart-sub').textContent = `${windowStart} – ${lastDay}`;
-  renderDailyLineChart('daily-ov-chart', 'dov', 260, null, daily, { from: windowStart, to: lastDay });
-  renderDailyRecommendations(series, lastDay, days);
+    `Operativní pohled pro každodenní sledování · ${windowLabel}, nezávisle na filtru období nahoře`;
+  document.getElementById('daily-ov-chart-sub').textContent = `${windowStart} – ${windowEnd}`;
+  renderDailyLineChart('daily-ov-chart', 'dov', 260, null, daily, { from: windowStart, to: windowEnd });
+  renderDailyRecommendations(series, windowEnd, days);
   renderDailyTable(series);
-  renderRecentNegativeMentions();
-  renderDailyWatchlist(lastDay);
-  renderDailyWatchlistPositive(lastDay);
+  renderRecentNegativeMentions(windowStart, windowEnd);
+  renderDailyWatchlist(windowEnd);
+  renderDailyWatchlistPositive(windowEnd);
 }
 
 /* ---------- monthly overview (strategic monthly review) ---------- */
