@@ -4175,17 +4175,30 @@ function computeRecentSourceNegativity(lastDay) {
     .sort((a, b) => b.negShare - a.negShare);
 }
 
-function sparklineSvg(values, color, w, h) {
-  w = w || 260; h = h || 44;
+function sparklineSvg(values, color, w, h, days) {
+  w = w || 260; h = h || 56;
+  const padTop = 4, padBottom = 13, padX = 3;
   const max = Math.max(1, ...values);
-  const pad = 3;
-  const step = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
-  const pts = values.map((v, i) => ({ x: pad + step * i, y: h - pad - (v / max) * (h - pad * 2) }));
+  const step = values.length > 1 ? (w - padX * 2) / (values.length - 1) : 0;
+  const y = v => padTop + (1 - v / max) * (h - padTop - padBottom);
+  const baseline = y(0);
+  const pts = values.map((v, i) => ({ x: padX + step * i, y: y(v), v, day: days ? days[i] : null }));
   const line = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-  const area = `${pad},${h - pad} ${line} ${(w - pad).toFixed(1)},${h - pad}`;
-  return `<svg class="reco-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+  const area = `${padX},${baseline.toFixed(1)} ${line} ${(w - padX).toFixed(1)},${baseline.toFixed(1)}`;
+  const dots = pts.map(p =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.8" fill="${color}"><title>${p.day ? `${p.day}: ` : ''}${p.v} zmínek</title></circle>`
+  ).join('');
+  const maxLabel = `<text x="${padX}" y="${padTop + 6}" font-size="9" fill="${color}" font-weight="600">${max}</text>`;
+  const dateLabels = (days && days.length)
+    ? `<text x="${padX}" y="${h - 2}" font-size="8" fill="var(--text-muted)">${days[0].slice(5)}</text>
+       <text x="${w - padX}" y="${h - 2}" font-size="8" fill="var(--text-muted)" text-anchor="end">${days[days.length - 1].slice(5)}</text>`
+    : '';
+  return `<svg class="reco-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <polygon points="${area}" fill="${color}" opacity="0.16"/>
     <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+    ${maxLabel}
+    ${dateLabels}
   </svg>`;
 }
 
@@ -4241,7 +4254,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident).</p>
-        <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)')}</div>
+        <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)', null, null, days)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4253,7 +4266,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)')}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   });
@@ -4265,7 +4278,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)')}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4277,7 +4290,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item risk">
         <p>Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
-        <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)')}</div>
+        <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)', null, null, days)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4289,7 +4302,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     html += `
       <div class="reco-item win">
         <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)')}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)', null, null, days)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   });
