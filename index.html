@@ -221,7 +221,7 @@
   .tabs {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 14px;
     flex: 0 0 220px;
     position: sticky;
     top: 24px;
@@ -232,17 +232,23 @@
     max-height: calc(100vh - 48px);
     overflow-y: auto;
   }
+  .nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--page-plane);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+  }
   .tabs .nav-section-label {
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-muted);
-    padding: 14px 12px 4px;
-    margin-top: 6px;
-    border-top: 1px solid var(--border);
+    padding: 2px 6px 6px;
   }
-  .tabs .nav-section-label:first-child { padding-top: 4px; margin-top: 0; border-top: none; }
   .tabs button {
     display: flex;
     align-items: center;
@@ -1412,6 +1418,7 @@
       width: 100%;
     }
     .tabs .nav-section-label { display: none; }
+    .nav-section { display: contents; }
     .tabs button { flex: 0 0 auto; white-space: nowrap; }
     .overview-grid.grid-2-1,
     .overview-grid.grid-1-1-1,
@@ -1529,33 +1536,43 @@
 
   <div class="layout">
   <nav class="tabs" aria-label="Navigace reportu">
-    <p class="nav-section-label" style="padding-top:4px;">Přehled</p>
-    <button class="tab-btn active" data-tab="tab-overview" aria-current="page">Celkový přehled</button>
-    <button class="tab-btn" data-tab="tab-monthly-overview">Měsíční shrnutí</button>
-    <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
+    <div class="nav-section">
+      <p class="nav-section-label">Přehled</p>
+      <button class="tab-btn active" data-tab="tab-overview" aria-current="page">Celkový přehled</button>
+      <button class="tab-btn" data-tab="tab-monthly-overview">Měsíční shrnutí</button>
+      <button class="tab-btn" data-tab="tab-daily-overview">Denní provoz</button>
+    </div>
 
-    <p class="nav-section-label">Sentiment &amp; problémy</p>
-    <button class="tab-btn" data-tab="tab-sentiment">Sentiment podle aspektu</button>
-    <button class="tab-btn" data-tab="tab-trend">Vývoj v čase</button>
-    <button class="tab-btn" data-tab="tab-issues">Top issues</button>
-    <button class="tab-btn" data-tab="tab-issues-trend">Vývoj issues</button>
-    <button class="tab-btn" data-tab="tab-painpoint-cat">Pain-point: kategorie</button>
-    <button class="tab-btn" data-tab="tab-painpoint-tags">Pain-point: tagy</button>
-    <button class="tab-btn" data-tab="tab-trending">Rostoucí negativita</button>
-    <button class="tab-btn" data-tab="tab-trending-pos">Rostoucí pozitivita</button>
+    <div class="nav-section">
+      <p class="nav-section-label">Sentiment &amp; problémy</p>
+      <button class="tab-btn" data-tab="tab-sentiment">Sentiment podle aspektu</button>
+      <button class="tab-btn" data-tab="tab-trend">Vývoj v čase</button>
+      <button class="tab-btn" data-tab="tab-issues">Top issues</button>
+      <button class="tab-btn" data-tab="tab-issues-trend">Vývoj issues</button>
+      <button class="tab-btn" data-tab="tab-painpoint-cat">Pain-point: kategorie</button>
+      <button class="tab-btn" data-tab="tab-painpoint-tags">Pain-point: tagy</button>
+      <button class="tab-btn" data-tab="tab-trending">Rostoucí negativita</button>
+      <button class="tab-btn" data-tab="tab-trending-pos">Rostoucí pozitivita</button>
+    </div>
 
-    <p class="nav-section-label">Zdroje &amp; obsah</p>
-    <button class="tab-btn" data-tab="tab-sources">Zdroje dat</button>
-    <button class="tab-btn" data-tab="tab-matrix">Zdroj × kategorie</button>
-    <button class="tab-btn" data-tab="tab-mentions">Zmínky</button>
-    <button class="tab-btn" data-tab="tab-keywords">Klíčová slova</button>
+    <div class="nav-section">
+      <p class="nav-section-label">Zdroje &amp; obsah</p>
+      <button class="tab-btn" data-tab="tab-sources">Zdroje dat</button>
+      <button class="tab-btn" data-tab="tab-matrix">Zdroj × kategorie</button>
+      <button class="tab-btn" data-tab="tab-mentions">Zmínky</button>
+      <button class="tab-btn" data-tab="tab-keywords">Klíčová slova</button>
+    </div>
 
-    <p class="nav-section-label">Metodika dat</p>
-    <button class="tab-btn" data-tab="tab-tags">Tag taxonomie</button>
+    <div class="nav-section">
+      <p class="nav-section-label">Metodika dat</p>
+      <button class="tab-btn" data-tab="tab-tags">Tag taxonomie</button>
+    </div>
 
-    <p class="nav-section-label">Uživatelská nastavení</p>
-    <button class="tab-btn" data-tab="tab-my-dashboard">Můj přehled</button>
-    <button class="tab-btn" data-tab="tab-settings">Nastavení</button>
+    <div class="nav-section">
+      <p class="nav-section-label">Uživatelská nastavení</p>
+      <button class="tab-btn" data-tab="tab-my-dashboard">Můj přehled</button>
+      <button class="tab-btn" data-tab="tab-settings">Nastavení</button>
+    </div>
   </nav>
 
   <main class="content">
