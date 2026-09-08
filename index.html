@@ -1604,8 +1604,17 @@
   <!-- TAB: Daily overview (day-to-day operations) -->
   <div class="tab-panel" id="tab-daily-overview">
     <div class="card exec-summary-card">
-      <h2>Denní provoz</h2>
-      <p class="sub">Operativní pohled pro každodenní sledování · posledních 14 dní dostupných dat, nezávisle na filtru období nahoře</p>
+      <div class="toolbar">
+        <div>
+          <h2>Denní provoz</h2>
+          <p class="sub" id="daily-ov-window-sub">Operativní pohled pro každodenní sledování · nezávisle na filtru období nahoře</p>
+        </div>
+        <div class="view-toggle">
+          <button id="dov-window-7">7 dní</button>
+          <button id="dov-window-14" class="active">14 dní</button>
+          <button id="dov-window-30">30 dní</button>
+        </div>
+      </div>
       <div id="daily-ov-summary" class="exec-summary-body"></div>
     </div>
 
@@ -4272,21 +4281,45 @@ function renderDailyRecommendations(series, lastDay, days) {
   document.getElementById('daily-ov-recommendations').innerHTML = html;
 }
 
+let dailyOverviewWindow = 14; // 7 | 14 | 30
+
+function buildDailySeries(daily, windowStart, lastDay) {
+  return dateRange(windowStart, lastDay).map(d => {
+    const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
+    return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
+  });
+}
+
+function initDailyOverviewWindow() {
+  [['dov-window-7', 7], ['dov-window-14', 14], ['dov-window-30', 30]].forEach(([id, n]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      dailyOverviewWindow = n;
+      document.querySelectorAll('#dov-window-7, #dov-window-14, #dov-window-30').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderDailyOverview();
+    });
+  });
+}
+
 function renderDailyOverview() {
   const daily = trueDailyStats();
   const allDays = Object.keys(daily).sort();
   const lastDay = allDays.length ? allDays[allDays.length - 1] : ALL_MONTHS[ALL_MONTHS.length - 1] + '-31';
-  const windowStart = addDays(lastDay, -13);
-  const days = dateRange(windowStart, lastDay);
-  const series = days.map(d => {
-    const v = daily[d] || { positive: 0, neutral: 0, negative: 0 };
-    return { day: d, positive: v.positive, neutral: v.neutral, negative: v.negative, total: v.positive + v.neutral + v.negative };
-  });
 
+  // the 4 stat tiles and the "posledních 7 dní" summary text always compare a fixed
+  // last-7-vs-previous-7-days window, independent of the display window chosen below
+  const statsSeries = buildDailySeries(daily, addDays(lastDay, -13), lastDay);
+  renderDailyStats(statsSeries);
+  renderDailySummaryBlock(statsSeries);
+
+  const windowStart = addDays(lastDay, -(dailyOverviewWindow - 1));
+  const days = dateRange(windowStart, lastDay);
+  const series = buildDailySeries(daily, windowStart, lastDay);
+
+  document.getElementById('daily-ov-window-sub').textContent =
+    `Operativní pohled pro každodenní sledování · posledních ${dailyOverviewWindow} dní dostupných dat (${windowStart} – ${lastDay}), nezávisle na filtru období nahoře`;
   document.getElementById('daily-ov-chart-sub').textContent = `${windowStart} – ${lastDay}`;
   renderDailyLineChart('daily-ov-chart', 'dov', 260, null, daily, { from: windowStart, to: lastDay });
-  renderDailyStats(series);
-  renderDailySummaryBlock(series);
   renderDailyRecommendations(series, lastDay, days);
   renderDailyTable(series);
   renderRecentNegativeMentions();
@@ -4945,6 +4978,7 @@ Promise.all([
   initOverviewLineGranularity();
   initOverviewLineChartType();
   initMonthlyTrendMetric();
+  initDailyOverviewWindow();
   renderKeywords();
   renderAllForGlobalRange();
 }).catch(err => {
