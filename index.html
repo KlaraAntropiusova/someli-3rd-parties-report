@@ -4175,7 +4175,7 @@ function computeRecentSourceNegativity(lastDay) {
     .sort((a, b) => b.negShare - a.negShare);
 }
 
-function sparklineSvg(values, color, w, h, days) {
+function sparklineSvg(values, color, w, h, days, id) {
   w = w || 260; h = h || 56;
   const padTop = 4, padBottom = 13, padX = 3;
   const max = Math.max(1, ...values);
@@ -4186,20 +4186,42 @@ function sparklineSvg(values, color, w, h, days) {
   const line = pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const area = `${padX},${baseline.toFixed(1)} ${line} ${(w - padX).toFixed(1)},${baseline.toFixed(1)}`;
   const dots = pts.map(p =>
-    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.8" fill="${color}"><title>${p.day ? `${p.day}: ` : ''}${p.v} zmínek</title></circle>`
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.8" fill="${color}"/>`
+  ).join('');
+  const hits = pts.map(p =>
+    `<circle class="spark-hit" data-day="${p.day || ''}" data-v="${p.v}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="7" fill="transparent" style="cursor:${p.day ? 'pointer' : 'default'}"/>`
   ).join('');
   const maxLabel = `<text x="${padX}" y="${padTop + 6}" font-size="9" fill="${color}" font-weight="600">${max}</text>`;
   const dateLabels = (days && days.length)
     ? `<text x="${padX}" y="${h - 2}" font-size="8" fill="var(--text-muted)">${days[0].slice(5)}</text>
        <text x="${w - padX}" y="${h - 2}" font-size="8" fill="var(--text-muted)" text-anchor="end">${days[days.length - 1].slice(5)}</text>`
     : '';
-  return `<svg class="reco-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  return `<svg class="reco-spark" id="${id || ''}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
     <polygon points="${area}" fill="${color}" opacity="0.16"/>
     <polyline points="${line}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
     ${maxLabel}
     ${dateLabels}
+    ${hits}
   </svg>`;
+}
+
+function wireSparklineInteractions(sparkJobs) {
+  sparkJobs.forEach(job => {
+    const svgEl = document.getElementById(job.id);
+    if (!svgEl) return;
+    svgEl.querySelectorAll('.spark-hit').forEach(hit => {
+      const day = hit.dataset.day;
+      const v = hit.dataset.v;
+      if (!day) return;
+      hit.addEventListener('mousemove', e => showTooltip(e, `${day}: ${v} zmínek`));
+      hit.addEventListener('mouseleave', hideTooltip);
+      hit.addEventListener('click', () => {
+        const mentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && job.filter(day, m));
+        openDetailModal(job.title(day), mentions, true);
+      });
+    });
+  });
 }
 
 function categoryDailySentimentSeries(category, sentiment, days) {
@@ -4248,13 +4270,22 @@ function renderDailyRecommendations(series, lastDay, days) {
   const recentDays = new Set([addDays(lastDay, -2), addDays(lastDay, -1), lastDay]);
 
   let html = '';
+  const sparkJobs = [];
+  let sparkCounter = 0;
+  const nextSparkId = () => `dov-spark-${sparkCounter++}`;
 
   if (spike) {
     const example = findExampleMention(m => m.sentiment === 'negative' && m.date.slice(0, 10) === spike.day);
+    const sparkId = nextSparkId();
+    sparkJobs.push({
+      id: sparkId,
+      title: day => `Negativní zmínky — ${day}`,
+      filter: (day, m) => m.sentiment === 'negative' && m.date.slice(0, 10) === day,
+    });
     html += `
       <div class="reco-item risk">
         <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident).</p>
-        <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)', null, null, days)}</div>
+        <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4263,10 +4294,16 @@ function renderDailyRecommendations(series, lastDay, days) {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
     const catSeries = categoryDailySentimentSeries(w.category, 'negative', days);
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
+    const sparkId = nextSparkId();
+    sparkJobs.push({
+      id: sparkId,
+      title: day => `${w.category} — negativní zmínky — ${day}`,
+      filter: (day, m) => m.sentiment === 'negative' && m.date.slice(0, 10) === day && m.categories.includes(w.category),
+    });
     html += `
       <div class="reco-item risk">
         <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days)}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   });
@@ -4275,10 +4312,16 @@ function renderDailyRecommendations(series, lastDay, days) {
     const domain = CATEGORY_DOMAIN_CZ[topVolNeg.category] || topVolNeg.category;
     const catSeries = categoryDailySentimentSeries(topVolNeg.category, 'negative', days);
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(topVolNeg.category));
+    const sparkId = nextSparkId();
+    sparkJobs.push({
+      id: sparkId,
+      title: day => `${topVolNeg.category} — negativní zmínky — ${day}`,
+      filter: (day, m) => m.sentiment === 'negative' && m.date.slice(0, 10) === day && m.categories.includes(topVolNeg.category),
+    });
     html += `
       <div class="reco-item risk">
         <p>Nejvíc negativních zmínek za poslední 3 dny: <b>${topVolNeg.category}</b> (${topVolNeg.count}) — i bez výrazného růstu jde aktuálně o kategorii s nejvyšším operativním dopadem.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days)}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4287,10 +4330,16 @@ function renderDailyRecommendations(series, lastDay, days) {
     const s = sources[0];
     const srcSeries = sourceDailyVolumeSeries(s.domain, days);
     const example = findExampleMention(m => m.sentiment === 'negative' && recentDays.has(m.date.slice(0, 10)) && m.domain === s.domain);
+    const sparkId = nextSparkId();
+    sparkJobs.push({
+      id: sparkId,
+      title: day => `${s.domain} — zmínky — ${day}`,
+      filter: (day, m) => m.date.slice(0, 10) === day && m.domain === s.domain,
+    });
     html += `
       <div class="reco-item risk">
         <p>Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
-        <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)', null, null, days)}</div>
+        <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   }
@@ -4299,16 +4348,23 @@ function renderDailyRecommendations(series, lastDay, days) {
     const domain = CATEGORY_DOMAIN_CZ[w.category] || w.category;
     const catSeries = categoryDailySentimentSeries(w.category, 'positive', days);
     const example = findExampleMention(m => m.sentiment === 'positive' && recentDays.has(m.date.slice(0, 10)) && m.categories.includes(w.category));
+    const sparkId = nextSparkId();
+    sparkJobs.push({
+      id: sparkId,
+      title: day => `${w.category} — pozitivní zmínky — ${day}`,
+      filter: (day, m) => m.sentiment === 'positive' && m.date.slice(0, 10) === day && m.categories.includes(w.category),
+    });
     html += `
       <div class="reco-item win">
         <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>
-        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)', null, null, days)}</div>
+        <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
       </div>`;
   });
 
   if (!html) html = `<p>Za sledované období nejsou žádné výkyvy vyžadující okamžitou pozornost.</p>`;
   document.getElementById('daily-ov-recommendations').innerHTML = html;
+  wireSparklineInteractions(sparkJobs);
 }
 
 let dailyOverviewWindow = 14; // 7 | 14 | 30
