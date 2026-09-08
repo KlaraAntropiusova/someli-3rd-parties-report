@@ -1811,8 +1811,18 @@
   <!-- TAB: Trend -->
   <div class="tab-panel" id="tab-trend">
     <div class="card">
-      <h2>Vývoj sentimentu v čase</h2>
-      <p class="sub" id="trend-sub">Květen–červenec 2026 · denní vývoj sentimentu · klikni na bod v grafu pro detail dne</p>
+      <div class="toolbar">
+        <div>
+          <h2>Vývoj sentimentu v čase</h2>
+          <p class="sub" id="trend-sub"></p>
+        </div>
+        <div class="view-toggle">
+          <button id="trend-metric-total" class="active">Celkem</button>
+          <button id="trend-metric-positive">Pozitivní</button>
+          <button id="trend-metric-negative">Negativní</button>
+          <button id="trend-metric-neutral">Neutrální</button>
+        </div>
+      </div>
       <div class="cat-filter-row" id="trend-cat-filters"></div>
       <div id="trend-chart"></div>
     </div>
@@ -2711,13 +2721,35 @@ function initTrendCategoryFilters() {
   });
 }
 
+let trendMetric = 'total'; // 'total' | 'positive' | 'negative' | 'neutral'
+
 function renderTrend() {
   const catNote = trendSelectedCategories.size ? ` · kategorie: ${[...trendSelectedCategories].join(', ')}` : '';
-  document.getElementById('trend-sub').textContent =
-    `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · denní vývoj sentimentu${catNote} · klikni na bod v grafu pro detail dne`;
-  renderDailyLineChart('trend-chart', 'tr', 340, (s, sentiment) => showTrendDayDetail(s.day, sentiment), computeTrendDailyData());
+  const dailyData = computeTrendDailyData();
+  if (trendMetric === 'total') {
+    document.getElementById('trend-sub').textContent =
+      `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · denní vývoj sentimentu${catNote} · klikni na bod v grafu pro detail dne`;
+    renderDailyLineChart('trend-chart', 'tr', 340, (s, sentiment) => showTrendDayDetail(s.day, sentiment), dailyData);
+  } else {
+    document.getElementById('trend-sub').textContent =
+      `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · ${MOV_METRIC_LABEL[trendMetric]} zmínky${catNote} · klikni na bod v grafu pro detail dne`;
+    const days = dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to);
+    const series = days.map(d => ({ day: d, v: (dailyData[d] || { positive: 0, neutral: 0, negative: 0 })[trendMetric] }));
+    renderSingleLineChart('trend-chart', 'tr', 340, series, MOV_METRIC_COLOR[trendMetric], s => showTrendDayDetail(s.day, trendMetric));
+  }
   const panel = document.getElementById('trend-day-panel');
   if (panel.style.display !== 'none') panel.style.display = 'none';
+}
+
+function initTrendMetric() {
+  [['trend-metric-total', 'total'], ['trend-metric-positive', 'positive'], ['trend-metric-negative', 'negative'], ['trend-metric-neutral', 'neutral']].forEach(([id, mode]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      trendMetric = mode;
+      document.querySelectorAll('#trend-metric-total, #trend-metric-positive, #trend-metric-negative, #trend-metric-neutral').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      renderTrend();
+    });
+  });
 }
 
 let TREND_DAY_STATE = null;
@@ -3010,7 +3042,7 @@ function renderSingleLineChart(containerId, idPrefix, H, series, color, onDayCli
       ${gridLines}
       <path class="line-path" d="${path}" stroke="${color}"/>
       ${monthTicks}
-      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
+      <rect id="${idPrefix}-line-hover-target" x="0" y="0" width="${W - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-dot" fill="${color}" style="display:none"/>
     </svg>`;
   const container = document.getElementById(containerId);
@@ -3366,7 +3398,7 @@ function renderMultiLineChart(containerId, idPrefix, H, series, onDayClick, tick
       <path class="line-path neg" d="${pathFor('negative')}"/>
       <path class="line-path neutral" d="${pathFor('neutral')}"/>
       ${tickMarks}
-      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
+      <rect id="${idPrefix}-line-hover-target" x="0" y="0" width="${W - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-total" fill="var(--accent-warm)" style="display:none"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-pos" fill="var(--pos)" style="display:none"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-neg" fill="var(--neg)" style="display:none"/>
@@ -5234,6 +5266,7 @@ Promise.all([
   initMentionsFilters();
   renderMentionsTable();
   initTrendCategoryFilters();
+  initTrendMetric();
   initIssuesFilters();
   initIssuesTrendFilters();
   initTrendingFilters('negative', 'trend-neg-category', 'trend-neg-aspect', renderTrending);
