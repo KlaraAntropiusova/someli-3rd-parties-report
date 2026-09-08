@@ -1144,10 +1144,10 @@
     text-transform: uppercase;
     padding-top: 1px;
   }
-  .action-advice.do { background: color-mix(in srgb, var(--pos) 12%, transparent); color: var(--text-secondary); }
-  .action-advice.do .action-label { color: var(--pos); }
-  .action-advice.avoid { background: color-mix(in srgb, var(--text-muted) 14%, transparent); color: var(--text-secondary); }
-  .action-advice.avoid .action-label { color: var(--text-muted); }
+  .action-advice.do { background: color-mix(in srgb, var(--neg) 12%, transparent); color: var(--text-secondary); }
+  .action-advice.do .action-label { color: var(--neg); }
+  .action-advice.avoid { background: color-mix(in srgb, var(--accent-warm) 14%, transparent); color: var(--text-secondary); }
+  .action-advice.avoid .action-label { color: var(--accent-warm); }
   .action-advice.caution { background: color-mix(in srgb, var(--accent-warm) 14%, transparent); color: var(--text-secondary); }
   .action-advice.caution .action-label { color: var(--accent-warm); }
   .exec-summary-body ul { margin: 0 0 10px; padding: 0; list-style: none; }
@@ -4351,7 +4351,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     });
     html += `
       <div class="reco-item risk">
-        <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně — doporučujeme dohledat příčinu (např. konkrétní událost nebo medializovaný incident).</p>
+        <p>Neobvyklý výkyv: den <b>${spike.day}</b> zaznamenal <b>${spike.negative}</b> negativních zmínek oproti průměru ${spike.avg} za ostatní dny ve sledovaném okně.</p>
         ${actionAdviceHtml('spike', spikeMentions)}
         <div class="reco-chart">${sparklineSvg(series.map(s => s.negative), 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
@@ -4371,7 +4371,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     });
     html += `
       <div class="reco-item risk">
-        <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům. Doporučujeme rychlou kontrolu, zda nejde o nový nebo opakující se problém.<span class="domain-tag">${domain}</span></p>
+        <p>Sledujte: <b>${w.category}</b> — negativní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny oproti předchozím 3 dnům.<span class="domain-tag">${domain}</span></p>
         ${actionAdviceHtml('watch-neg', catMentions)}
         <div class="reco-chart">${sparklineSvg(catSeries, 'var(--neg)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
@@ -4411,7 +4411,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     });
     html += `
       <div class="reco-item risk">
-        <p>Zdroj k dnešní kontrole: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
+        <p>Zdroj s nejvyšší negativitou: <b>${s.domain}</b> má za poslední 3 dny nejvyšší podíl negativity (${s.negShare.toFixed(0)} % z ${s.total} zmínek na tomto zdroji).</p>
         ${actionAdviceHtml('source', srcMentions)}
         <div class="reco-chart">${sparklineSvg(srcSeries, 'var(--accent-warm)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
@@ -4431,7 +4431,7 @@ function renderDailyRecommendations(series, lastDay, days) {
     });
     html += `
       <div class="reco-item win">
-        <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny. Vhodné pro rychlé sdílení nebo amplifikaci v komunikaci.<span class="domain-tag">${domain}</span></p>
+        <p>Pozitivní moment: <b>${w.category}</b> — pozitivní zmínky vzrostly o ${w.delta.toFixed(0)} % (${w.prev} → ${w.recent}) za poslední 3 dny.<span class="domain-tag">${domain}</span></p>
         ${actionAdviceHtml('watch-pos', catMentions)}
         <div class="reco-chart">${sparklineSvg(catSeries, 'var(--pos)', null, null, days, sparkId)}</div>
         ${exampleQuoteHtml(example)}
