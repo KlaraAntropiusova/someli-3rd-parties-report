@@ -1673,14 +1673,14 @@
     </div>
 
     <div class="card">
-      <h2>Vývoj v čase</h2>
+      <h2>Negativní trend v čase</h2>
       <p class="sub" id="monthly-ov-chart-sub"></p>
       <div id="monthly-ov-chart"></div>
     </div>
 
     <div class="card">
       <h2>Výkon kategorií po měsících</h2>
-      <p class="sub">Objem a podíl negativity u každé kategorie ve zvoleném období</p>
+      <p class="sub">Objem a podíl negativity u každé kategorie ve zvoleném období · klikni na záhlaví sloupce pro řazení</p>
       <div class="table-scroll" id="monthly-ov-cat-table"></div>
     </div>
 
@@ -2873,7 +2873,7 @@ function renderIssuesTrendList() {
   });
 }
 
-function renderSingleLineChart(containerId, idPrefix, H, series, color) {
+function renderSingleLineChart(containerId, idPrefix, H, series, color, onDayClick) {
   const W = 1000, padL = 34, padB = 18, padT = 6;
   const maxV = Math.max(1, ...series.map(s => s.v));
   const x = i => padL + (i / Math.max(1, series.length - 1)) * (W - padL - 8);
@@ -2894,7 +2894,7 @@ function renderSingleLineChart(containerId, idPrefix, H, series, color) {
       ${gridLines}
       <path class="line-path" d="${path}" stroke="${color}"/>
       ${monthTicks}
-      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent"/>
+      <rect id="${idPrefix}-line-hover-target" x="${padL}" y="0" width="${W - padL - 4}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>
       <circle class="line-hover-dot" id="${idPrefix}-hover-dot" fill="${color}" style="display:none"/>
     </svg>`;
   const container = document.getElementById(containerId);
@@ -2919,6 +2919,9 @@ function renderSingleLineChart(containerId, idPrefix, H, series, color) {
     dot.style.display = 'none';
     hideTooltip();
   });
+  if (onDayClick) {
+    target.addEventListener('click', e => onDayClick(series[dayIndexFromEvent(e)]));
+  }
 }
 
 function renderIssuesDaily() {
@@ -4281,16 +4284,49 @@ function computeCategoryMonthlyTable() {
   }));
 }
 
+let monthlyCatSort = { key: 'total', dir: 'desc' };
+
 function renderMonthlyCategoryTable() {
   const months = monthsInGlobalRange();
-  const rows = computeCategoryMonthlyTable();
-  const header = `<tr><th>Kategorie</th>${months.map(m => `<th style="text-align:right;">${MONTH_NAMES_CZ[m] || m}</th>`).join('')}<th style="text-align:right;">Celkem</th><th style="text-align:right;">Negativní podíl</th></tr>`;
-  const body = rows.map(r => {
+  const rows = computeCategoryMonthlyTable().map(r => {
     const negShare = r.rangeTotals.total ? Math.round((r.rangeTotals.negative / r.rangeTotals.total) * 1000) / 10 : 0;
+    return { ...r, negShare };
+  });
+
+  const sortVal = (r, key) => {
+    if (key === 'category') return r.category;
+    if (key === 'total') return r.rangeTotals.total;
+    if (key === 'negShare') return r.negShare;
+    if (key.indexOf('month:') === 0) {
+      const mt = r.monthlyTotals.find(x => x.month === key.slice(6));
+      return mt ? mt.total : 0;
+    }
+    return 0;
+  };
+  rows.sort((a, b) => {
+    const av = sortVal(a, monthlyCatSort.key), bv = sortVal(b, monthlyCatSort.key);
+    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'cs') : av - bv;
+    return monthlyCatSort.dir === 'asc' ? cmp : -cmp;
+  });
+
+  const arrow = key => monthlyCatSort.key === key ? (monthlyCatSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th = (key, label, align) => `<th class="sortable-th" data-sort-key="${key}" style="${align ? `text-align:${align};` : ''}cursor:pointer;user-select:none;">${label}${arrow(key)}</th>`;
+
+  const header = `<tr>${th('category', 'Kategorie')}${months.map(m => th('month:' + m, MONTH_NAMES_CZ[m] || m, 'right')).join('')}${th('total', 'Celkem', 'right')}${th('negShare', 'Negativní podíl', 'right')}</tr>`;
+  const body = rows.map(r => {
     const cells = r.monthlyTotals.map(mt => `<td class="num">${mt.total}</td>`).join('');
-    return `<tr><td>${r.category}</td>${cells}<td class="num">${r.rangeTotals.total}</td><td class="num">${negShare} %</td></tr>`;
+    return `<tr><td>${r.category}</td>${cells}<td class="num">${r.rangeTotals.total}</td><td class="num">${r.negShare} %</td></tr>`;
   }).join('');
-  document.getElementById('monthly-ov-cat-table').innerHTML = `<table class="trending-table"><thead>${header}</thead><tbody>${body}</tbody></table>`;
+  const el = document.getElementById('monthly-ov-cat-table');
+  el.innerHTML = `<table class="trending-table"><thead>${header}</thead><tbody>${body}</tbody></table>`;
+  el.querySelectorAll('.sortable-th').forEach(thEl => {
+    thEl.addEventListener('click', () => {
+      const key = thEl.dataset.sortKey;
+      if (monthlyCatSort.key === key) monthlyCatSort.dir = monthlyCatSort.dir === 'asc' ? 'desc' : 'asc';
+      else monthlyCatSort = { key, dir: key === 'category' ? 'asc' : 'desc' };
+      renderMonthlyCategoryTable();
+    });
+  });
 }
 
 function computeRecurringIssues() {
@@ -4488,11 +4524,21 @@ function renderMonthlyRecommendations() {
   });
 }
 
+function openMonthlyDayDetail(point) {
+  const day = point.day;
+  const dayMentions = MENTIONS.mentions.filter(m =>
+    (!VERIFIED_ONLY || m.verified) && m.sentiment === 'negative' && m.date.slice(0, 10) === day);
+  openDetailModal(`Negativní zmínky — ${day}`, dayMentions, true);
+}
+
 function renderMonthlyOverview() {
-  document.getElementById('monthly-ov-chart-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
+  document.getElementById('monthly-ov-chart-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · klikni na bod v grafu pro zjištění, čeho se ten den týkaly negativní zmínky`;
   renderMonthlySummary();
   renderMonthlyStats();
-  renderDailyLineChart('monthly-ov-chart', 'mov', 280);
+  const daily = trueDailyStats();
+  const days = dateRange(GLOBAL_RANGE.from, GLOBAL_RANGE.to);
+  const negSeries = days.map(d => ({ day: d, v: (daily[d] || { negative: 0 }).negative }));
+  renderSingleLineChart('monthly-ov-chart', 'mov', 280, negSeries, 'var(--neg)', openMonthlyDayDetail);
   renderMonthlyCategoryTable();
   renderMonthlyRecurring();
   renderMonthlyRecommendations();
