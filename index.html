@@ -436,6 +436,9 @@
   .modal-kw-chip { cursor: pointer; }
   .modal-kw-chip.active { background: var(--series-1); border-color: var(--series-1); color: var(--on-accent); }
   .modal-kw-chip.active .g3-count { color: inherit; opacity: 0.8; }
+  .trend-day-cat-chip { cursor: pointer; }
+  .trend-day-cat-chip.active { background: var(--series-1); border-color: var(--series-1); color: var(--on-accent); }
+  .trend-day-cat-chip.active .g3-count { color: inherit; opacity: 0.8; }
   .empty-hint {
     font-size: 13px;
     color: var(--text-muted);
@@ -1816,8 +1819,14 @@
     <div class="card" id="trend-day-panel" style="display:none;">
       <h2 id="trend-day-title">—</h2>
       <p class="sub" id="trend-day-sub"></p>
-      <p class="mini-gauge-title" style="text-align:left;min-height:0;margin:0 0 8px;">Dotčené kategorie</p>
+      <p class="mini-gauge-title" style="text-align:left;min-height:0;margin:0 0 8px;">Dotčené kategorie · klikni pro filtrování</p>
       <div id="trend-day-categories" class="chips" style="margin-bottom:18px;"></div>
+      <div class="toolbar" style="margin-bottom:14px;">
+        <div class="filter-field" style="min-width:220px;">
+          <label>Hledat</label>
+          <input id="trend-day-search" type="text" placeholder="Hledat v textu zmínek…">
+        </div>
+      </div>
       <p class="mini-gauge-title" style="text-align:left;min-height:0;margin:0 0 8px;">Zmínky z tohoto dne</p>
       <div id="trend-day-mentions" style="max-height:420px;overflow-y:auto;"></div>
     </div>
@@ -2711,7 +2720,17 @@ function renderTrend() {
   if (panel.style.display !== 'none') panel.style.display = 'none';
 }
 
+let TREND_DAY_STATE = null;
+
 function showTrendDayDetail(day, sentimentFilter) {
+  TREND_DAY_STATE = { day, sentimentFilter, categoryFilter: null };
+  document.getElementById('trend-day-search').value = '';
+  renderTrendDayPanel();
+  document.getElementById('trend-day-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderTrendDayPanel() {
+  const { day, sentimentFilter, categoryFilter } = TREND_DAY_STATE;
   let dayMentions = MENTIONS.mentions.filter(m => m.date.slice(0, 10) === day);
   if (VERIFIED_ONLY) dayMentions = dayMentions.filter(m => m.verified);
   if (trendSelectedCategories.size) {
@@ -2720,12 +2739,10 @@ function showTrendDayDetail(day, sentimentFilter) {
   if (sentimentFilter) {
     dayMentions = dayMentions.filter(m => m.sentiment === sentimentFilter);
   }
+
   const panel = document.getElementById('trend-day-panel');
   panel.style.display = '';
   document.getElementById('trend-day-title').textContent = day;
-  document.getElementById('trend-day-sub').textContent = sentimentFilter
-    ? `${dayMentions.length} ${SENTIMENT_LABEL_SHORT_CZ[sentimentFilter].toLowerCase()} zmínek tento den`
-    : `${dayMentions.length} zmínek tento den`;
 
   const catCounts = {};
   dayMentions.forEach(m => {
@@ -2734,8 +2751,25 @@ function showTrendDayDetail(day, sentimentFilter) {
   });
   const catList = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
   document.getElementById('trend-day-categories').innerHTML = catList.length
-    ? catList.map(([c, n]) => `<span class="chip">${c} <span class="g3-count">(${n})</span></span>`).join('')
+    ? catList.map(([c, n]) => `<span class="chip trend-day-cat-chip${c === categoryFilter ? ' active' : ''}" data-cat="${c}">${c} <span class="g3-count">(${n})</span></span>`).join('')
     : `<span class="empty-hint">Žádné kategorie k zobrazení.</span>`;
+  document.querySelectorAll('#trend-day-categories .trend-day-cat-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      TREND_DAY_STATE.categoryFilter = TREND_DAY_STATE.categoryFilter === chip.dataset.cat ? null : chip.dataset.cat;
+      renderTrendDayPanel();
+    });
+  });
+
+  if (categoryFilter) dayMentions = dayMentions.filter(m => m.categories.includes(categoryFilter));
+  const search = document.getElementById('trend-day-search').value.trim().toLowerCase();
+  if (search) dayMentions = dayMentions.filter(m => m.text.toLowerCase().includes(search));
+
+  const subParts = [];
+  subParts.push(sentimentFilter
+    ? `${dayMentions.length} ${SENTIMENT_LABEL_SHORT_CZ[sentimentFilter].toLowerCase()} zmínek tento den`
+    : `${dayMentions.length} zmínek tento den`);
+  if (categoryFilter) subParts.push(`kategorie: ${categoryFilter}`);
+  document.getElementById('trend-day-sub').textContent = subParts.join(' · ');
 
   const mentionsEl = document.getElementById('trend-day-mentions');
   const shown = dayMentions.slice(0, 50);
@@ -2748,12 +2782,15 @@ function showTrendDayDetail(day, sentimentFilter) {
           </div>
           <p class="modal-quote-text">"${m.text}"</p>
         </div>`).join('')
-    : `<p class="empty">Pro tento den nejsou k dispozici žádné zmínky.</p>`;
+    : `<p class="empty">Žádné zmínky neodpovídají aktuálnímu filtru.</p>`;
   if (dayMentions.length > shown.length) {
     mentionsEl.insertAdjacentHTML('beforeend', `<p class="empty-hint" style="padding-top:8px;">Zobrazeno prvních ${shown.length} z ${dayMentions.length} zmínek.</p>`);
   }
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
+
+document.getElementById('trend-day-search').addEventListener('input', () => {
+  if (TREND_DAY_STATE) renderTrendDayPanel();
+});
 
 /* ---------- issues (tab 4) ---------- */
 function populateIssueFilterOptions() {
