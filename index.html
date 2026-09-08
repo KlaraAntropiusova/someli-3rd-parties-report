@@ -433,6 +433,9 @@
     transition: background 0.15s ease, color 0.15s ease;
   }
   .chip:hover { background: var(--series-1-soft); color: var(--text-primary); }
+  .modal-kw-chip { cursor: pointer; }
+  .modal-kw-chip.active { background: var(--series-1); border-color: var(--series-1); color: var(--on-accent); }
+  .modal-kw-chip.active .g3-count { color: inherit; opacity: 0.8; }
   .empty-hint {
     font-size: 13px;
     color: var(--text-muted);
@@ -2408,8 +2411,22 @@ function openDetailModal(title, examples, showKeywords) {
   const keywords = showKeywords ? extractKeywordsFromExamples(MODAL_STATE.examples, 14) : [];
   if (keywords.length) {
     kwEl.style.display = '';
-    kwEl.innerHTML = `<p class="modal-keywords-label">Nejčastější slova v těchto zmínkách</p>
-      <div class="chips">${keywords.map(([w, c]) => `<span class="chip">${w} <span class="g3-count">(${c})</span></span>`).join('')}</div>`;
+    kwEl.innerHTML = `<p class="modal-keywords-label">Nejčastější slova v těchto zmínkách · klikni pro filtrování</p>
+      <div class="chips">${keywords.map(([w, c]) => `<span class="chip modal-kw-chip" data-word="${w}">${w} <span class="g3-count">(${c})</span></span>`).join('')}</div>`;
+    kwEl.querySelectorAll('.modal-kw-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const input = document.getElementById('modal-search');
+        const wasActive = chip.classList.contains('active');
+        kwEl.querySelectorAll('.modal-kw-chip').forEach(c => c.classList.remove('active'));
+        if (wasActive) {
+          input.value = '';
+        } else {
+          input.value = chip.dataset.word;
+          chip.classList.add('active');
+        }
+        renderModalList();
+      });
+    });
   } else {
     kwEl.style.display = 'none';
     kwEl.innerHTML = '';
@@ -2428,7 +2445,10 @@ document.getElementById('detail-modal').addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeDetailModal();
 });
-document.getElementById('modal-search').addEventListener('input', renderModalList);
+document.getElementById('modal-search').addEventListener('input', () => {
+  document.querySelectorAll('#modal-keywords .modal-kw-chip').forEach(c => c.classList.remove('active'));
+  renderModalList();
+});
 document.getElementById('modal-sort').addEventListener('change', renderModalList);
 
 /* ---------- pain-point gauge click → relevant mentions (reuses the mention detail modal) ---------- */
