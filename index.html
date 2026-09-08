@@ -1699,7 +1699,7 @@
 
     <div class="card">
       <h2>Přetrvávající problémy</h2>
-      <p class="sub">Témata, která se objevují ve více než jednom měsíci — nejde o jednorázový výkyv</p>
+      <p class="sub">Témata, která se objevují ve více než jednom měsíci — nejde o jednorázový výkyv · klikni na záhlaví sloupce pro řazení</p>
       <div id="monthly-ov-recurring"></div>
     </div>
   </div>
@@ -4369,19 +4369,47 @@ function computeRecurringIssues() {
       months.reduce((s, m) => s + (b.issue[monthsKey][m] || 0), 0) - months.reduce((s, m) => s + (a.issue[monthsKey][m] || 0), 0));
 }
 
+let monthlyRecurringSort = { key: 'activeMonths', dir: 'desc' };
+
 function renderMonthlyRecurring() {
   const recurring = computeRecurringIssues();
   const months = monthsInGlobalRange();
   const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
   const el = document.getElementById('monthly-ov-recurring');
-  el.innerHTML = recurring.length ? `
+  if (!recurring.length) {
+    el.innerHTML = `<p class="empty-hint">Žádné issue se v tomto období neopakuje napříč více měsíci.</p>`;
+    return;
+  }
+
+  let rows = recurring.map(r => ({
+    label: r.issue.label,
+    aspect: r.issue.aspect_label,
+    activeMonths: r.activeMonths.length,
+    total: months.reduce((s, m) => s + (r.issue[monthsKey][m] || 0), 0),
+  }));
+
+  rows.sort((a, b) => {
+    const av = a[monthlyRecurringSort.key], bv = b[monthlyRecurringSort.key];
+    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'cs') : av - bv;
+    return monthlyRecurringSort.dir === 'asc' ? cmp : -cmp;
+  });
+
+  const arrow = key => monthlyRecurringSort.key === key ? (monthlyRecurringSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th = (key, label, align) => `<th class="sortable-th" data-sort-key="${key}" style="${align ? `text-align:${align};` : ''}cursor:pointer;user-select:none;">${label}${arrow(key)}</th>`;
+
+  el.innerHTML = `
     <table class="trending-table">
-      <thead><tr><th>Issue</th><th>Aspekt</th><th style="text-align:right;">Měsíců aktivní</th><th style="text-align:right;">Zmínky celkem</th></tr></thead>
-      <tbody>${recurring.map(r => {
-        const total = months.reduce((s, m) => s + (r.issue[monthsKey][m] || 0), 0);
-        return `<tr><td>${r.issue.label}</td><td>${r.issue.aspect_label}</td><td class="num">${r.activeMonths.length}</td><td class="num">${total}</td></tr>`;
-      }).join('')}</tbody>
-    </table>` : `<p class="empty-hint">Žádné issue se v tomto období neopakuje napříč více měsíci.</p>`;
+      <thead><tr>${th('label', 'Issue')}${th('aspect', 'Aspekt')}${th('activeMonths', 'Měsíců aktivní', 'right')}${th('total', 'Zmínky celkem', 'right')}</tr></thead>
+      <tbody>${rows.map(r => `<tr><td>${r.label}</td><td>${r.aspect}</td><td class="num">${r.activeMonths}</td><td class="num">${r.total}</td></tr>`).join('')}</tbody>
+    </table>`;
+  el.querySelectorAll('.sortable-th').forEach(thEl => {
+    thEl.addEventListener('click', () => {
+      const key = thEl.dataset.sortKey;
+      if (monthlyRecurringSort.key === key) monthlyRecurringSort.dir = monthlyRecurringSort.dir === 'asc' ? 'desc' : 'asc';
+      else monthlyRecurringSort = { key, dir: (key === 'label' || key === 'aspect') ? 'asc' : 'desc' };
+      renderMonthlyRecurring();
+    });
+  });
 }
 
 function renderMonthlySummary() {
