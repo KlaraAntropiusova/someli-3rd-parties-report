@@ -1682,9 +1682,9 @@
           <p class="sub" id="monthly-ov-chart-sub"></p>
         </div>
         <div class="view-toggle">
-          <button id="mov-metric-total">Celkem</button>
+          <button id="mov-metric-total" class="active">Celkem</button>
           <button id="mov-metric-positive">Pozitivní</button>
-          <button id="mov-metric-negative" class="active">Negativní</button>
+          <button id="mov-metric-negative">Negativní</button>
           <button id="mov-metric-neutral">Neutrální</button>
         </div>
       </div>
@@ -4582,7 +4582,7 @@ function renderMonthlyRecommendations() {
   });
 }
 
-let monthlyTrendMetric = 'negative'; // 'total' | 'positive' | 'negative' | 'neutral'
+let monthlyTrendMetric = 'total'; // 'total' | 'positive' | 'negative' | 'neutral'
 const MOV_METRIC_LABEL = { total: 'celkem', positive: 'pozitivní', negative: 'negativní', neutral: 'neutrální' };
 const MOV_METRIC_COLOR = { total: 'var(--accent-warm)', positive: 'var(--pos)', negative: 'var(--neg)', neutral: 'var(--neutral-fill)' };
 
