@@ -1159,6 +1159,13 @@
     margin-top: 3px;
   }
   .exec-summary-body .reco-sub b { color: var(--text-secondary); }
+  .quote-summary-list {
+    display: block;
+    margin-top: 3px;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
   .action-advice {
     display: flex;
     gap: 7px;
@@ -2924,7 +2931,7 @@ function renderIssues() {
     detail.className = 'issue-detail';
     const allMentions = (ISSUE_CLUSTER_MENTIONS && ISSUE_CLUSTER_MENTIONS[issue.cluster_key]) || [];
     detail.innerHTML = `
-      <p class="summary"><b>Summary:</b> ${issue.summary}</p>
+      <div class="summary">${issueSummaryHtml(issue.summary)}</div>
       ${issue.examples.map((q, idx) => `<p class="quote"><b>Example${issue.examples.length > 1 ? ' ' + (idx + 1) : ''}:</b> "${q.text}" ${q.url ? `<a class="mention-link" href="${q.url}" target="_blank" rel="noopener noreferrer">zdroj →</a>` : ''}</p>`).join('')}
       ${allMentions.length ? `<button class="mention-link issue-all-mentions-btn" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;font-size:13px;">Zobrazit všech ${issue[countField].toLocaleString('cs-CZ')} zmínek →</button>` : ''}
     `;
@@ -4136,7 +4143,7 @@ function renderExecutiveSummary() {
     const topTag = getAspectTopDrivingTag(topNeg.category, topNeg.label, 'negative');
     const tagInline = (topTag && topTag.name !== topNeg.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     let extra = '';
-    if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
+    if (topIssue) extra += issueSummaryHtml(topIssue.summary);
     html += `<p class="risk">Nejrychleji rostoucí riziko: <b>${topNeg.label}</b>${tagInline} — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b> (${topNeg.may} → ${topNeg.jul} zmínek).<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topNeg.key}" data-label="${topNeg.label}" data-category="${topNeg.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   }
@@ -4868,6 +4875,18 @@ function renderMonthlyStats() {
   `;
 }
 
+// The underlying data has no synthesized summary — "summary" is really a few
+// representative customer quotes glued together with "|", left in English
+// (the mentions' original language). Show it as what it is: a short quote list,
+// not a translated, single-sentence summary.
+function issueSummaryHtml(summary) {
+  if (!summary) return '';
+  const parts = summary.split('|').map(s => s.trim()).filter(Boolean);
+  if (!parts.length) return '';
+  const items = parts.map(p => `„${p}“`).join('<br>');
+  return `<span class="reco-sub"><b>Přímé citace zákazníků (anglicky, beze změny):</b><span class="quote-summary-list">${items}</span></span>`;
+}
+
 function getAspectTopIssueSummary(aspectKey, months) {
   const countField = VERIFIED_ONLY ? 'v_mention_count' : 'mention_count';
   const candidates = SENT.issues.filter(i => i.aspect === aspectKey && months.includes(i.month.split('_').slice(0, 2).join('-')));
@@ -4926,7 +4945,7 @@ function renderMonthlyRecommendations() {
     const topTag = getAspectTopDrivingTag(t.category, t.label, 'negative');
     const tagInline = (topTag && topTag.name !== t.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     let extra = '';
-    if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
+    if (topIssue) extra += issueSummaryHtml(topIssue.summary);
     html += `<p class="risk">Prioritizujte: <b>${t.label}</b>${tagInline} — negativita roste (+${t.delta.toFixed(0)} % od května, ${t.may} → ${t.jul} zmínek). Doporučujeme prověřit s týmem.<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${t.key}" data-label="${t.label}" data-category="${t.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
   });
@@ -4937,7 +4956,7 @@ function renderMonthlyRecommendations() {
     const topTag = getAspectTopDrivingTag(r.issue.category, r.issue.aspect_label, 'negative');
     let extra = '';
     if (topTag && topTag.name !== r.issue.aspect_label) extra += `<span class="reco-sub">Konkrétně se to nejvíc týká: <b>${topTag.name}</b> (${topTag.mayV} → ${topTag.julV} zmínek)</span>`;
-    if (matchingIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${matchingIssue.summary}</span>`;
+    if (matchingIssue) extra += issueSummaryHtml(matchingIssue.summary);
     html += `<p class="risk">Přetrvávající problém: <b>${r.issue.label}</b> se objevuje ${r.activeMonths.length} měsíce po sobě ve vybraném období — nejde o jednorázový výkyv, ale o opakující se téma vyžadující systémové řešení.${extra}</p>`;
   });
 
