@@ -2200,11 +2200,7 @@
       <div class="filter-field">
         <label>Minimální počet zmínek pro zobrazení</label>
         <p class="sub" style="margin:4px 0 0;">Klíčová slova, tagy, aspekty, zdroje, issues a denní doporučení s méně zmínkami, než je tento práh, se nezobrazí ani se nezapočítají do žebříčků. Netýká se seznamu jednotlivých Zmínek ani Tag taxonomie (tam jde o strukturu dat, ne o objem). Nastavte na 0 pro vypnutí.</p>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-          <input id="settings-min-threshold" type="number" min="0" max="1000" step="1" style="max-width:120px;">
-          <button id="settings-min-threshold-save" style="background:var(--series-1);border:none;color:#fff;border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Uložit</button>
-          <span id="settings-min-threshold-status" style="font-size:12.5px;color:var(--pos);font-weight:600;"></span>
-        </div>
+        <input id="settings-min-threshold" type="number" min="0" max="1000" step="1" style="margin-top:10px;max-width:120px;">
       </div>
     </div>
 
@@ -2212,6 +2208,15 @@
       <h2>Obnovit výchozí</h2>
       <p class="sub">Vrátí vzhled a výchozí zobrazení na tovární nastavení v tomto prohlížeči.</p>
       <button id="settings-reset" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">Obnovit výchozí nastavení</button>
+    </div>
+
+    <div class="card">
+      <h2>Uložit nastavení prahu zobrazení</h2>
+      <p class="sub">Uloží hodnotu zadanou v poli „Minimální počet zmínek pro zobrazení" výše.</p>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="settings-min-threshold-save" style="background:var(--series-1);border:none;color:#fff;border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Uložit</button>
+        <span id="settings-min-threshold-status" style="font-size:12.5px;color:var(--pos);font-weight:600;"></span>
+      </div>
     </div>
   </div>
   </main>
