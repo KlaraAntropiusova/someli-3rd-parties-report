@@ -4104,7 +4104,6 @@ function renderExecutiveSummary() {
     const topTag = getAspectTopDrivingTag(topNeg.category, topNeg.label, 'negative');
     const tagInline = (topTag && topTag.name !== topNeg.label) ? ` (konkrétně <b>${topTag.name}</b>)` : '';
     let extra = '';
-    if (topTag && topTag.name !== topNeg.label) extra += `<span class="reco-sub">Podrobněji: ${topTag.name} — ${topTag.mayV} → ${topTag.julV} zmínek</span>`;
     if (topIssue) extra += `<span class="reco-sub"><b>Souhrn:</b> ${topIssue.summary}</span>`;
     html += `<p class="risk">Nejrychleji rostoucí riziko: <b>${topNeg.label}</b>${tagInline} — negativní zmínky vzrostly od května o <b>${topNeg.delta.toFixed(0)} %</b> (${topNeg.may} → ${topNeg.jul} zmínek).<span class="domain-tag">${domain}</span>
       <button class="mention-link trend-detail-btn" data-key="${topNeg.key}" data-label="${topNeg.label}" data-category="${topNeg.category}" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extra}</p>`;
@@ -4113,11 +4112,8 @@ function renderExecutiveSummary() {
     const domain = CATEGORY_DOMAIN_CZ[topPos.category] || topPos.category;
     const topTagPos = getAspectTopDrivingTag(topPos.category, topPos.label, 'positive');
     const tagInlinePos = (topTagPos && topTagPos.name !== topPos.label) ? ` (konkrétně <b>${topTagPos.name}</b>)` : '';
-    const extraPos = (topTagPos && topTagPos.name !== topPos.label)
-      ? `<span class="reco-sub">Podrobněji: ${topTagPos.name} — ${topTagPos.mayV} → ${topTagPos.julV} zmínek</span>`
-      : '';
     html += `<p class="win">Nejrychleji rostoucí zlepšení: <b>${topPos.label}</b>${tagInlinePos} — pozitivní zmínky vzrostly od května o <b>${topPos.delta.toFixed(0)} %</b> (${topPos.may} → ${topPos.jul} zmínek).<span class="domain-tag">${domain}</span>
-      <button class="mention-link trend-detail-btn" data-key="${topPos.key}" data-label="${topPos.label}" data-category="${topPos.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button>${extraPos}</p>`;
+      <button class="mention-link trend-detail-btn" data-key="${topPos.key}" data-label="${topPos.label}" data-category="${topPos.category}" data-field="positive" style="background:none;border:none;cursor:pointer;font-family:inherit;padding:0;margin-left:6px;">Zobrazit detail →</button></p>`;
   }
   if (!topNeg && !topPos) {
     html += `<p>Žádný aspekt nemá dostatek dat pro spolehlivé srovnání trendu.</p>`;
