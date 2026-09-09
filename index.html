@@ -2200,7 +2200,11 @@
       <div class="filter-field">
         <label>Minimální počet zmínek pro zobrazení</label>
         <p class="sub" style="margin:4px 0 0;">Klíčová slova, tagy, aspekty, zdroje, issues a denní doporučení s méně zmínkami, než je tento práh, se nezobrazí ani se nezapočítají do žebříčků. Netýká se seznamu jednotlivých Zmínek ani Tag taxonomie (tam jde o strukturu dat, ne o objem). Nastavte na 0 pro vypnutí.</p>
-        <input id="settings-min-threshold" type="number" min="0" max="1000" step="1" style="margin-top:10px;max-width:120px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+          <input id="settings-min-threshold" type="number" min="0" max="1000" step="1" style="max-width:120px;">
+          <button id="settings-min-threshold-save" style="background:var(--series-1);border:none;color:#fff;border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Uložit</button>
+          <span id="settings-min-threshold-status" style="font-size:12.5px;color:var(--pos);font-weight:600;"></span>
+        </div>
       </div>
     </div>
 
@@ -5195,13 +5199,19 @@ function initSettingsUI() {
   });
 
   const minThresholdInput = document.getElementById('settings-min-threshold');
+  const minThresholdStatus = document.getElementById('settings-min-threshold-status');
   minThresholdInput.value = USER_SETTINGS.minMentionThreshold;
-  minThresholdInput.addEventListener('change', () => {
+  const saveMinThreshold = () => {
     const v = Math.max(0, Math.min(1000, parseInt(minThresholdInput.value, 10) || 0));
     minThresholdInput.value = v;
     saveSettings({ minMentionThreshold: v });
     if (DATA && SOURCES && MENTIONS) renderAllForGlobalRange();
-  });
+    minThresholdStatus.textContent = 'Uloženo ✓';
+    clearTimeout(minThresholdStatus._hideTimer);
+    minThresholdStatus._hideTimer = setTimeout(() => { minThresholdStatus.textContent = ''; }, 2500);
+  };
+  document.getElementById('settings-min-threshold-save').addEventListener('click', saveMinThreshold);
+  minThresholdInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveMinThreshold(); });
 
   document.getElementById('settings-reset').addEventListener('click', () => {
     localStorage.removeItem(SETTINGS_KEY);
