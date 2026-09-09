@@ -3327,7 +3327,7 @@ function renderOverviewSources() {
     .map(s => ({ label: s.source, key: s.source, ...sumMonthly(s.monthly, months) }))
     .sort((a, b) => b[ovSrcSortMode] - a[ovSrcSortMode])
     .slice(0, 6);
-  document.getElementById('ov-sources-sub').textContent = `Top 6 domén s ${OV_SRC_SORT_LABEL[ovSrcSortMode]}`;
+  document.getElementById('ov-sources-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · Top 6 domén s ${OV_SRC_SORT_LABEL[ovSrcSortMode]}`;
   renderAbsStackedBar('ov-sources-bar', rows, OV_CAT_SEG_ORDER[ovSrcSortMode], 'sources');
 }
 
@@ -3357,7 +3357,7 @@ function renderOverviewCategories() {
     .map(a => ({ label: a.label, key: a.aspect, ...sumMonthly(a.monthly, months) }))
     .sort((a, b) => b[ovCatSortMode] - a[ovCatSortMode])
     .slice(0, 8);
-  document.getElementById('ov-categories-sub').textContent = `Aspekty s ${OV_CAT_SORT_LABEL[ovCatSortMode]}`;
+  document.getElementById('ov-categories-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · Aspekty s ${OV_CAT_SORT_LABEL[ovCatSortMode]}`;
   renderAbsStackedBar('ov-categories-bar', rows, OV_CAT_SEG_ORDER[ovCatSortMode], 'aspects');
 }
 
