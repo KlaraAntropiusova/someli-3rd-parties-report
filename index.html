@@ -2195,6 +2195,16 @@
     </div>
 
     <div class="card">
+      <h2>Práh zobrazení</h2>
+      <p class="sub">Potlačí statistický šum z položek s málo zmínkami napříč reportem.</p>
+      <div class="filter-field">
+        <label>Minimální počet zmínek pro zobrazení</label>
+        <p class="sub" style="margin:4px 0 0;">Klíčová slova, tagy, aspekty, zdroje, issues a denní doporučení s méně zmínkami, než je tento práh, se nezobrazí ani se nezapočítají do žebříčků. Netýká se seznamu jednotlivých Zmínek ani Tag taxonomie (tam jde o strukturu dat, ne o objem). Nastavte na 0 pro vypnutí.</p>
+        <input id="settings-min-threshold" type="number" min="0" max="1000" step="1" style="margin-top:10px;max-width:120px;">
+      </div>
+    </div>
+
+    <div class="card">
       <h2>Obnovit výchozí</h2>
       <p class="sub">Vrátí vzhled a výchozí zobrazení na tovární nastavení v tomto prohlížeči.</p>
       <button id="settings-reset" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">Obnovit výchozí nastavení</button>
@@ -2264,7 +2274,7 @@ document.getElementById('access-gate-form').addEventListener('submit', async e =
 /* ---------- user settings (theme, accent, defaults) — persisted per-browser ---------- */
 const SETTINGS_KEY = 'someli_user_settings';
 function loadSettings() {
-  const defaults = { theme: 'light', accent: 'terracotta', layoutColor: 'cream', defaultVerified: false, pageSize: 50, dashboardWidgets: [] };
+  const defaults = { theme: 'light', accent: 'terracotta', layoutColor: 'cream', defaultVerified: false, pageSize: 50, dashboardWidgets: [], minMentionThreshold: 0 };
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; }
   catch (e) { return defaults; }
 }
@@ -2275,6 +2285,13 @@ function saveSettings(patch) {
   return next;
 }
 let USER_SETTINGS = loadSettings();
+
+// The user-configurable "minimum mentions to show" floor, combined with any
+// baseline a given list already enforced for its own statistical reasons —
+// raising the setting only ever hides more, never fewer, than the baseline did.
+function effectiveMinCount(baseline) {
+  return Math.max(baseline || 0, USER_SETTINGS.minMentionThreshold || 0);
+}
 
 function hexToRgbArr(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -2685,7 +2702,7 @@ function renderSentStats() {
   const totalPos = filteredMonths.reduce((s, x) => s + x.positive, 0);
   const totalAll = filteredMonths.reduce((s, x) => s + x.total, 0);
   const posShare = totalAll ? Math.round((totalPos / totalAll) * 1000) / 10 : 0;
-  const activeAspects = SENT.aspect_summary.filter(a => sumMonthly(a.monthly, months).total > 0).length;
+  const activeAspects = SENT.aspect_summary.filter(a => sumMonthly(a.monthly, months).total >= effectiveMinCount(1)).length;
   el.innerHTML = `
     <div class="stat-tile"><p class="label">Zmínky celkem</p><p class="value">${totalAll.toLocaleString('cs-CZ')}</p></div>
     <div class="stat-tile"><p class="label">Sledované aspekty</p><p class="value">${activeAspects}</p></div>
@@ -2700,7 +2717,7 @@ function renderSentimentChart() {
   const months = monthsInGlobalRange();
   const recomputed = SENT.aspect_summary
     .map(a => ({ label: a.label, key: a.aspect, ...sumMonthly(a.monthly, months) }))
-    .filter(a => a.total > 0)
+    .filter(a => a.total >= effectiveMinCount(1))
     .sort((a, b) => b[sentSortMode] - a[sentSortMode]);
   document.getElementById('sentiment-sort-sub').textContent =
     `${recomputed.length} aspektů seřazeno podle ${SENT_SORT_LABEL[sentSortMode]} (absolutní počty) · klikni „Zobrazit vše" pro kompletní seznam`;
@@ -2900,6 +2917,7 @@ function renderIssues() {
   const monthFilter = document.getElementById('if-month').value;
   let filtered = SENT.issues.filter(issue => months.includes(issue.month.split('_').slice(0, 2).join('-')));
   if (VERIFIED_ONLY) filtered = filtered.filter(issue => issue.v_mention_count > 0);
+  filtered = filtered.filter(issue => issue[countField] >= effectiveMinCount(1));
   if (aspectFilter) filtered = filtered.filter(issue => issue.aspect_label === aspectFilter);
   if (issueFilter) filtered = filtered.filter(issue => issue.label === issueFilter);
   if (monthFilter) filtered = filtered.filter(issue => issue.month.split('_').slice(0, 2).join('-') === monthFilter);
@@ -3000,7 +3018,7 @@ function renderIssuesTrendList() {
         filteredTotal: months.reduce((s, m) => s + (issue[monthsKey][m] || 0), 0),
       };
     })
-    .filter(x => x.filteredTotal > 0);
+    .filter(x => x.filteredTotal >= effectiveMinCount(1));
 
   const byCategory = {};
   withTotals.forEach(row => { (byCategory[row.issue.category] = byCategory[row.issue.category] || []).push(row); });
@@ -3156,6 +3174,7 @@ function renderSources() {
   const months = monthsInGlobalRange();
   const recomputed = SOURCES.sources
     .map(s => ({ source: s.source, monthly: s.monthly, ...sumMonthly(s.monthly, months) }))
+    .filter(s => s.total >= effectiveMinCount(1))
     .sort((a, b) => b.total - a.total);
   const grandTotal = recomputed.reduce((sum, s) => sum + s.total, 0);
   const maxMonthly = Math.max(1, ...recomputed.flatMap(s => months.map(m => (s.monthly[m] || {}).total || 0)));
@@ -3723,7 +3742,7 @@ function renderPainPointByCategory() {
     const c = byCategory[a.category] = byCategory[a.category] || { label: a.category, positive: 0, neutral: 0, negative: 0, total: 0 };
     c.positive += m.positive; c.neutral += m.neutral; c.negative += m.negative; c.total += m.total;
   });
-  const ordered = sortByPainPointSeverity(Object.values(byCategory));
+  const ordered = sortByPainPointSeverity(Object.values(byCategory).filter(c => c.total >= effectiveMinCount(1)));
   const grid = document.getElementById('painpoint-cat-grid');
   grid.innerHTML = ordered.map(renderMiniGauge).join('');
   grid.querySelectorAll('.mini-gauge-card').forEach((card, i) => {
@@ -3740,7 +3759,7 @@ function renderPainPointByTags() {
   const byCategory = {};
   TAG_SENTIMENT.tags.forEach(t => {
     const m = sumMonthly(t.monthly, months);
-    if (m.total === 0) return;
+    if (m.total < effectiveMinCount(1)) return;
     (byCategory[t.category] = byCategory[t.category] || []).push({ label: t.name, key: t.tag_key, ...m });
   });
   // order category panels themselves by their worst (most red-heavy) tags first
@@ -3796,7 +3815,7 @@ function computeSentimentTrendByCategory(field) {
     const mMay = (a.monthly[may] || { [key]: 0 })[key];
     const mJun = (a.monthly[jun] || { [key]: 0 })[key];
     const mJul = (a.monthly[jul] || { [key]: 0 })[key];
-    if (mMay < 10) return;
+    if (mMay < effectiveMinCount(10)) return;
     const delta = pctDelta(mJul, mMay);
     if (delta === null || delta <= 0) return;
     (byCategory[a.category] = byCategory[a.category] || []).push({ label: a.label, key: a.aspect, may: mMay, jun: mJun, jul: mJul, delta });
@@ -3842,7 +3861,7 @@ function initTrendingFilters(field, categorySelectId, aspectSelectId, renderFn) 
 function renderTrendingByField(field, subId, containerId, sentimentWord, deltaGoodDirection, emptyText, categorySelectId, aspectSelectId) {
   const [may, jun, jul] = ALL_MONTHS.map(m => MONTH_NAMES_CZ[m] || m);
   document.getElementById(subId).textContent =
-    `Vývoj ${sentimentWord} zmínek podle aspektu, rozdělené po kategoriích · ${may} → ${jun} → ${jul} · jen aspekty s alespoň 10 zmínkami v květnu a rostoucí hodnotou`;
+    `Vývoj ${sentimentWord} zmínek podle aspektu, rozdělené po kategoriích · ${may} → ${jun} → ${jul} · jen aspekty s alespoň ${effectiveMinCount(10)} zmínkami v květnu a rostoucí hodnotou`;
 
   const categoryFilter = document.getElementById(categorySelectId).value;
   const aspectFilter = document.getElementById(aspectSelectId).value;
@@ -4036,7 +4055,7 @@ function renderKeywords() {
     alpha: 'Nejčastější slova v textech zmínek (bez výplňových slov) · řazeno abecedně · klikni pro zobrazení konkrétních zmínek',
   };
   document.getElementById('keywords-sub').textContent = KW_SORT_SUB[kwSortMode] || KW_SORT_SUB.count;
-  let words = KEYWORDS.words.filter(w => w[countKey] > 0);
+  let words = KEYWORDS.words.filter(w => w[countKey] >= effectiveMinCount(1));
   if (kwSearchTerm) words = words.filter(w => w.word.toLowerCase().includes(kwSearchTerm));
   words = words.slice().sort(sorters[kwSortMode] || sorters.count).slice(0, 40);
   const max = Math.max(1, ...words.map(w => w[countKey]));
@@ -4070,7 +4089,7 @@ function renderKeywords() {
   });
 
   const bigramCountKey = VERIFIED_ONLY ? 'v_count' : 'count';
-  let bigrams = KEYWORDS.bigrams.filter(b => b[bigramCountKey] > 0);
+  let bigrams = KEYWORDS.bigrams.filter(b => b[bigramCountKey] >= effectiveMinCount(1));
   if (kwSearchTerm) bigrams = bigrams.filter(b => b.phrase.toLowerCase().includes(kwSearchTerm));
   bigrams = bigrams.slice().sort((a, b) => b[bigramCountKey] - a[bigramCountKey]);
   document.getElementById('keywords-bigrams').innerHTML = bigrams.map(b =>
@@ -4182,7 +4201,7 @@ function computeDailyWatchlistBySentiment(lastDay, sentiment) {
   });
   return Object.entries(counts)
     .map(([category, v]) => ({ category, ...v, delta: pctDelta(v.recent, v.prev) }))
-    .filter(x => x.prev >= 3 && x.delta !== null && x.delta > 0)
+    .filter(x => x.prev >= effectiveMinCount(3) && x.delta !== null && x.delta > 0)
     .sort((a, b) => b.delta - a.delta);
 }
 function computeDailyWatchlist(lastDay) { return computeDailyWatchlistBySentiment(lastDay, 'negative'); }
@@ -4286,7 +4305,7 @@ function renderDailyWatchlistPositive(lastDay) {
 function computeDailySpikeDay(series) {
   if (!series.length) return null;
   const top = series.slice().sort((a, b) => b.negative - a.negative)[0];
-  if (!top || top.negative < 3) return null;
+  if (!top || top.negative < effectiveMinCount(3)) return null;
   const others = series.filter(d => d.day !== top.day);
   const avg = others.length ? others.reduce((s, d) => s + d.negative, 0) / others.length : 0;
   if (top.negative <= avg * 1.5) return null;
@@ -4303,7 +4322,8 @@ function computeDailyTopVolumeCategory(lastDay, sentiment) {
     m.categories.forEach(c => { counts[c] = (counts[c] || 0) + 1; });
   });
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  return entries[0] ? { category: entries[0][0], count: entries[0][1] } : null;
+  if (!entries[0] || entries[0][1] < effectiveMinCount(1)) return null;
+  return { category: entries[0][0], count: entries[0][1] };
 }
 
 function computeRecentSourceNegativity(lastDay) {
@@ -4318,7 +4338,7 @@ function computeRecentSourceNegativity(lastDay) {
   });
   return Object.entries(byDomain)
     .map(([domain, v]) => ({ domain, total: v.total, negShare: v.total ? (v.negative / v.total) * 100 : 0 }))
-    .filter(x => x.total >= 3)
+    .filter(x => x.total >= effectiveMinCount(3))
     .sort((a, b) => b.negShare - a.negShare);
 }
 
@@ -4425,7 +4445,7 @@ function actionAdviceHtml(kind, mentions) {
   if (!conc) return '';
   const pct = x => Math.round(x * 100);
 
-  if (conc.total < 5) {
+  if (conc.total < effectiveMinCount(5)) {
     return `<div class="action-advice caution"><span class="action-label">Malý vzorek</span><span>Jde jen o ${conc.total} zmínky/zmínek — i výrazná procentuální změna může být šum, sledujte spíš vývoj v čase než jednorázové číslo.</span></div>`;
   }
 
@@ -4761,17 +4781,18 @@ function renderMonthlyRecurring() {
   const months = monthsInGlobalRange();
   const monthsKey = VERIFIED_ONLY ? 'v_months' : 'months';
   const el = document.getElementById('monthly-ov-recurring');
-  if (!recurring.length) {
-    el.innerHTML = `<p class="empty-hint">Žádné issue se v tomto období neopakuje napříč více měsíci.</p>`;
-    return;
-  }
 
   let rows = recurring.map(r => ({
     label: r.issue.label,
     aspect: r.issue.aspect_label,
     activeMonths: r.activeMonths.length,
     total: months.reduce((s, m) => s + (r.issue[monthsKey][m] || 0), 0),
-  }));
+  })).filter(r => r.total >= effectiveMinCount(1));
+
+  if (!rows.length) {
+    el.innerHTML = `<p class="empty-hint">Žádné issue se v tomto období neopakuje napříč více měsíci.</p>`;
+    return;
+  }
 
   rows.sort((a, b) => {
     const av = a[monthlyRecurringSort.key], bv = b[monthlyRecurringSort.key];
@@ -5171,6 +5192,15 @@ function initSettingsUI() {
     saveSettings({ pageSize: v });
     mentionsPage = 0;
     renderMentionsTable();
+  });
+
+  const minThresholdInput = document.getElementById('settings-min-threshold');
+  minThresholdInput.value = USER_SETTINGS.minMentionThreshold;
+  minThresholdInput.addEventListener('change', () => {
+    const v = Math.max(0, Math.min(1000, parseInt(minThresholdInput.value, 10) || 0));
+    minThresholdInput.value = v;
+    saveSettings({ minMentionThreshold: v });
+    if (DATA && SOURCES && MENTIONS) renderAllForGlobalRange();
   });
 
   document.getElementById('settings-reset').addEventListener('click', () => {
