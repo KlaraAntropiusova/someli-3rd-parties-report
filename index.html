@@ -2209,15 +2209,6 @@
       <p class="sub">Vrátí vzhled a výchozí zobrazení na tovární nastavení v tomto prohlížeči.</p>
       <button id="settings-reset" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;">Obnovit výchozí nastavení</button>
     </div>
-
-    <div class="card">
-      <h2>Uložit nastavení prahu zobrazení</h2>
-      <p class="sub">Uloží hodnotu zadanou v poli „Minimální počet zmínek pro zobrazení" výše.</p>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button id="settings-min-threshold-save" style="background:var(--series-1);border:none;color:#fff;border-radius:6px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;">Uložit</button>
-        <span id="settings-min-threshold-status" style="font-size:12.5px;color:var(--pos);font-weight:600;"></span>
-      </div>
-    </div>
   </div>
   </main>
   </div>
@@ -5204,19 +5195,13 @@ function initSettingsUI() {
   });
 
   const minThresholdInput = document.getElementById('settings-min-threshold');
-  const minThresholdStatus = document.getElementById('settings-min-threshold-status');
   minThresholdInput.value = USER_SETTINGS.minMentionThreshold;
-  const saveMinThreshold = () => {
+  minThresholdInput.addEventListener('change', () => {
     const v = Math.max(0, Math.min(1000, parseInt(minThresholdInput.value, 10) || 0));
     minThresholdInput.value = v;
     saveSettings({ minMentionThreshold: v });
     if (DATA && SOURCES && MENTIONS) renderAllForGlobalRange();
-    minThresholdStatus.textContent = 'Uloženo ✓';
-    clearTimeout(minThresholdStatus._hideTimer);
-    minThresholdStatus._hideTimer = setTimeout(() => { minThresholdStatus.textContent = ''; }, 2500);
-  };
-  document.getElementById('settings-min-threshold-save').addEventListener('click', saveMinThreshold);
-  minThresholdInput.addEventListener('keydown', e => { if (e.key === 'Enter') saveMinThreshold(); });
+  });
 
   document.getElementById('settings-reset').addEventListener('click', () => {
     localStorage.removeItem(SETTINGS_KEY);
