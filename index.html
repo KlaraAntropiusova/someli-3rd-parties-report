@@ -3534,6 +3534,22 @@ function aggregateDailyStatsBy(granularity, range) {
   return order.map(k => buckets[k]);
 }
 
+function daysForBucket(granularity, bucketKey, range) {
+  if (granularity === 'day') return [bucketKey];
+  const days = dateRange(range.from, range.to);
+  const keyFn = granularity === 'month' ? (d => d.slice(0, 7)) : isoWeekStart;
+  return days.filter(d => keyFn(d) === bucketKey);
+}
+
+function onOverviewChartClick(point, sentimentKey) {
+  const days = new Set(daysForBucket(ovLineGranularity, point.day, GLOBAL_RANGE));
+  let mentions = MENTIONS.mentions.filter(m => (!VERIFIED_ONLY || m.verified) && days.has(m.date.slice(0, 10)));
+  if (sentimentKey) mentions = mentions.filter(m => m.sentiment === sentimentKey);
+  const label = point.label || point.day;
+  const sentLabel = sentimentKey ? ` — ${SENTIMENT_LABEL_SHORT_CZ[sentimentKey].toLowerCase()}` : '';
+  openDetailModal(`Zmínky — ${label}${sentLabel}`, mentions, true);
+}
+
 function ticksForGranularity(series, granularity) {
   if (granularity === 'day') {
     return ['2026-05-01', '2026-06-01', '2026-07-01']
@@ -3544,7 +3560,7 @@ function ticksForGranularity(series, granularity) {
   return series.map((s, i) => ({ i, label: s.label }));
 }
 
-function renderStackedBarChart(containerId, idPrefix, H, series, ticks) {
+function renderStackedBarChart(containerId, idPrefix, H, series, ticks, onDayClick) {
   const W = 1000, padL = 34, padB = 18, padT = 6;
   const maxV = Math.max(1, ...series.map(s => s.total));
   const n = Math.max(1, series.length);
@@ -3573,7 +3589,7 @@ function renderStackedBarChart(containerId, idPrefix, H, series, ticks) {
       <rect x="${x0}" y="${yNegTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${negH.toFixed(1)}" fill="var(--neg)"/>
       <rect x="${x0}" y="${yPosTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${posH.toFixed(1)}" fill="var(--pos)"/>
       <rect x="${x0}" y="${yNeuTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${neuH.toFixed(1)}" fill="var(--neutral-fill)"/>
-      <rect class="bar-hit" data-i="${i}" x="${(padL + slot * i).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}" fill="transparent"/>`;
+      <rect class="bar-hit" data-i="${i}" x="${(padL + slot * i).toFixed(1)}" y="0" width="${slot.toFixed(1)}" height="${H}" fill="transparent" style="cursor:${onDayClick ? 'pointer' : 'default'}"/>`;
   }).join('');
 
   const tickMarks = (ticks || []).map(t => `<text class="axis-label" x="${xCenter(t.i)}" y="${H - 2}">${t.label}</text>`).join('');
@@ -3592,10 +3608,26 @@ function renderStackedBarChart(containerId, idPrefix, H, series, ticks) {
   const container = document.getElementById(containerId);
   container.innerHTML = svg;
   container.querySelectorAll('.bar-hit').forEach(hit => {
-    const s = series[parseInt(hit.dataset.i, 10)];
+    const i = parseInt(hit.dataset.i, 10);
+    const s = series[i];
     hit.addEventListener('mousemove', e => showTooltip(e,
       `${s.label || s.day} — celkem: ${s.total} · pozitivní: ${s.positive} · negativní: ${s.negative} · neutrální: ${s.neutral}`));
     hit.addEventListener('mouseleave', hideTooltip);
+    if (onDayClick) {
+      hit.addEventListener('click', e => {
+        const svgEl = document.getElementById(`${idPrefix}-line-svg`);
+        const rect = svgEl.getBoundingClientRect();
+        const relY = ((e.clientY - rect.top) / rect.height) * H;
+        const yNegTop = y(s.negative);
+        const yPosTop = y(s.negative + s.positive);
+        const yNeuTop = y(s.negative + s.positive + s.neutral);
+        let sentiment = null;
+        if (relY >= yNegTop) sentiment = 'negative';
+        else if (relY >= yPosTop) sentiment = 'positive';
+        else if (relY >= yNeuTop) sentiment = 'neutral';
+        onDayClick(s, sentiment);
+      });
+    }
   });
 }
 
@@ -3613,13 +3645,13 @@ function initOverviewLineChartType() {
 }
 
 function renderOverviewLineChart() {
-  document.getElementById('ov-line-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to}`;
+  document.getElementById('ov-line-sub').textContent = `${GLOBAL_RANGE.from} – ${GLOBAL_RANGE.to} · klikni na bod/sloupec pro zobrazení zmínek`;
   const series = aggregateDailyStatsBy(ovLineGranularity, GLOBAL_RANGE);
   const ticks = ticksForGranularity(series, ovLineGranularity);
   if (ovLineChartType === 'bar') {
-    renderStackedBarChart('ov-line-chart', 'ov', 170, series, ticks);
+    renderStackedBarChart('ov-line-chart', 'ov', 170, series, ticks, onOverviewChartClick);
   } else {
-    renderMultiLineChart('ov-line-chart', 'ov', 170, series, null, ticks);
+    renderMultiLineChart('ov-line-chart', 'ov', 170, series, onOverviewChartClick, ticks);
   }
 }
 
